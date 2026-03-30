@@ -11,6 +11,7 @@
 <!-- Firebase (Realtime DB) — is Mandi app ka data alag path pe: businessApps/mandiMaizeUltimate -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <style>
 :root{
   --bg:#f0f2f5;--surface:#fff;--s2:#f7f8fa;--s3:#eef0f4;
@@ -174,7 +175,7 @@ td{padding:7px 10px;white-space:nowrap;color:var(--text);}
 /* ── IMPORT PREVIEW ── */
 .import-preview{max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r2);}
 /* ── TOAST ── */
-.toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:var(--r2);font-size:13px;font-weight:600;z-index:999;animation:tup .3s ease;max-width:340px;box-shadow:var(--sh2);display:flex;align-items:center;gap:8px;}
+.toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:var(--r2);font-size:13px;font-weight:600;z-index:100010;animation:tup .3s ease;max-width:340px;box-shadow:var(--sh2);display:flex;align-items:center;gap:8px;}
 .toast.s{background:#f0fdf4;color:var(--green);border:1px solid var(--gb);}
 .toast.e{background:var(--rbg);color:var(--red);border:1px solid var(--rb);}
 .toast.i{background:var(--bluebg);color:var(--blue);border:1px solid #c5d8f8;}
@@ -191,7 +192,10 @@ td{padding:7px 10px;white-space:nowrap;color:var(--text);}
 .stl span{color:var(--blue);}
 .empty{text-align:center;padding:40px 20px;color:var(--text3);}
 .ei{font-size:40px;margin-bottom:10px;}
-.lot-chip{display:inline-flex;align-items:center;background:var(--ybg);border:1px solid var(--yb);color:var(--yellow);padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;font-family:'Rajdhani',sans-serif;gap:4px;margin:2px;}
+.lot-chip{display:inline-flex;align-items:center;background:var(--ybg);border:1px solid var(--yb);color:var(--yellow);padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;font-family:'Rajdhani',sans-serif;gap:4px;margin:0;flex-shrink:0;}
+/* Table cells mein zyada rate chips — nowrap ki wajah se overlap na hon */
+td.cell-chips{white-space:normal!important;vertical-align:top;max-width:min(360px,46vw);}
+.cell-chips-inner{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;min-width:0;}
 /* ── LOT SELECTOR ── */
 .lot-selector{border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:12px;}
 .lot-sel-hd{background:var(--s2);padding:8px 12px;font-size:11px;font-weight:700;color:var(--blue2);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);}
@@ -221,6 +225,36 @@ td{padding:7px 10px;white-space:nowrap;color:var(--text);}
 .chart-bar-track{flex:1;height:16px;background:var(--s3);border-radius:3px;overflow:hidden;}
 .chart-bar-fill{height:100%;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:5px;transition:width .8s ease;}
 .chart-bar-val{font-size:10px;font-weight:700;color:#fff;font-family:'JetBrains Mono',monospace;}
+/* dashboard: rate chart — lamba list neeche na khinche, andar scroll + bada modal */
+.dash-chart-scroll{
+  max-height:min(40vh,340px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  border-top:1px solid var(--border);
+  background:var(--surface);
+  scrollbar-gutter:stable;
+}
+.dash-chart-rates-pad{padding:12px 14px;}
+@media (min-width:720px){
+  .dash-chart-rates-cols{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    column-gap:18px;
+    row-gap:2px;
+    align-content:start;
+  }
+  .dash-chart-rates-cols .chart-bar-row{margin-bottom:5px;}
+}
+@media (min-width:900px) and (orientation:landscape){
+  .rate-chart-modal-scroll .dash-chart-rates-cols{grid-template-columns:1fr 1fr 1fr;}
+}
+.rate-chart-modal-scroll{
+  max-height:min(86vh,780px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.rate-chart-hint{font-size:11px;color:var(--text3);line-height:1.45;margin:0 0 12px;}
 /* settings */
 .setting-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);}
 .setting-lbl{font-size:13px;font-weight:600;}
@@ -262,9 +296,37 @@ main{max-width:100%;padding:12px 10px;}
   .hdr-mid{grid-template-columns:repeat(2,1fr);}
 }
 .tsc{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;}
+/* Login gate */
+.auth-gate{display:none;position:fixed;inset:0;z-index:100000;background:linear-gradient(145deg,#0f172a,#1e3a5f);align-items:center;justify-content:center;padding:20px;}
+.auth-gate.open{display:flex;}
+.auth-card{width:100%;max-width:400px;background:var(--surface);border-radius:12px;padding:24px 22px;box-shadow:0 24px 60px rgba(0,0,0,.35);}
+.auth-card h2{font-family:'Rajdhani',sans-serif;font-size:22px;color:var(--blue2);margin-bottom:6px;}
+.auth-card p{font-size:12px;color:var(--text3);line-height:1.45;margin-bottom:14px;}
+.auth-card .fg2x{margin-bottom:10px;}
+body:not(.mmp-logged-in) .app-wrap{visibility:hidden;height:0;overflow:hidden;}
+body.mmp-logged-in .app-wrap{visibility:visible;height:auto;overflow:visible;}
 </style>
 </head>
 <body>
+
+<!-- ═══ LOGIN (Firebase Auth) ═══ -->
+<div class="auth-gate open" id="auth-gate">
+  <div class="auth-card">
+    <h2>🌽 Mandi Maize Pro</h2>
+    <p>Login tab kaam karega jab Firebase Console → Authentication → Sign-in method → <strong>Email/Password</strong> on ho. Code mein <code>MMP_REQUIRE_AUTH = true</code> ho aur admin email <code>MMP_ADMIN_EMAILS</code> mein ho.</p>
+    <div class="fg2x"><div class="flbl">Email</div><input type="email" class="finp" id="mmp-auth-email" autocomplete="username"></div>
+    <div class="fg2x"><div class="flbl">Password</div><input type="password" class="finp" id="mmp-auth-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter')mmpAuthLogin()"></div>
+    <div id="mmp-auth-status" style="display:none;margin-top:10px;padding:10px 12px;border-radius:var(--r2);font-size:12px;line-height:1.45;border:1px solid var(--border);background:var(--s2)"></div>
+    <p id="mmp-auth-file-hint" style="display:none;margin-top:10px;font-size:11px;color:var(--red);line-height:1.4">⚠️ Aap file ko seedha disk se khol rahe ho (<code>file://</code>). Firebase login is par kaam <strong>nahi</strong> karega. Isi folder ko <strong>local server</strong> se chalao (neeche).</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      <button type="button" class="btn btn-blue" id="mmp-btn-login" onclick="mmpAuthLogin()">Login</button>
+      <button type="button" class="btn btn-ghost" id="mmp-btn-register" onclick="mmpAuthRegister()">Naya account</button>
+    </div>
+    <p style="margin-top:14px;margin-bottom:0;font-size:11px"><strong>Login ke liye:</strong> HTML ko <code>http://localhost</code> se kholo (VS Code “Live Server”, ya folder mein <code>npx --yes serve .</code>). Sirf <code>file:///...</code> se open karne par Firebase block karta hai. Testing ke liye code mein <code>MMP_REQUIRE_AUTH = false</code> karo.</p>
+  </div>
+</div>
+
+<div class="app-wrap">
 
 <!-- ═══ HEADER ═══ -->
 <header>
@@ -283,8 +345,12 @@ main{max-width:100%;padding:12px 10px;}
     <div class="hdr-stat"><div class="v" id="h-bardana">0</div><div class="l">Bardana⚠</div></div>
   </div>
   <div class="hdr-r">
-    <div style="font-size:10px;color:rgba(255,255,255,.5);text-align:right" id="h-date"></div>
-    <button class="btn-hdr-add" onclick="prepNewPurchaseModal();openModal('purchase-modal')">＋ Purchase</button>
+    <div style="font-size:10px;color:rgba(255,255,255,.75);text-align:right">
+      <div id="mmp-header-user" style="max-width:140px;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="h-date" style="color:rgba(255,255,255,.5)"></div>
+    </div>
+    <button type="button" class="btn-w btn-sm" onclick="mmpAuthLogout()" title="Logout">Logout</button>
+    <button class="btn-hdr-add" data-mmp-perm="add" onclick="mmpTryAdd('purchase')">＋ Purchase</button>
   </div>
 </header>
 
@@ -320,8 +386,13 @@ main{max-width:100%;padding:12px 10px;}
       <div style="padding:12px 14px" id="dash-chart-shops"><div class="empty" style="padding:20px"><div class="ei">📊</div><p>Data nahi</p></div></div>
     </div>
     <div class="tw" style="margin:0">
-      <div class="th2"><div class="ttl">💰 Rate-wise Stock Distribution</div></div>
-      <div style="padding:12px 14px" id="dash-chart-rates"><div class="empty" style="padding:20px"><div class="ei">📊</div><p>Data nahi</p></div></div>
+      <div class="th2">
+        <div class="ttl">💰 Rate-wise Stock Distribution</div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openRateChartExpanded()" title="Poori list, zyada jagah">📐 Bada view</button>
+      </div>
+      <div class="dash-chart-scroll" aria-label="Rate chart scroll">
+        <div class="dash-chart-rates-pad dash-chart-rates-cols" id="dash-chart-rates"><div class="empty" style="padding:20px"><div class="ei">📊</div><p>Data nahi</p></div></div>
+      </div>
     </div>
   </div>
   <!-- Live shop-wise summary table -->
@@ -350,10 +421,10 @@ main{max-width:100%;padding:12px 10px;}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div class="stl">🏪 Shops / <span>Parties</span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="openImport('shops')">📥 Import CSV</button>
-      <button class="btn btn-green btn-sm" onclick="exportSection('shops','excel')">📊 Excel</button>
-      <button class="btn btn-red btn-sm" onclick="exportSection('shops','pdf')">📄 PDF</button>
-      <button class="btn btn-blue" onclick="openModal('shop-modal')">＋ Naya Shop</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-mmp-perm="import" onclick="openImport('shops')">📥 Import CSV</button>
+      <button type="button" class="btn btn-green btn-sm" data-mmp-perm="export" onclick="exportSection('shops','excel')">📊 Excel</button>
+      <button type="button" class="btn btn-red btn-sm" data-mmp-perm="export" onclick="exportSection('shops','pdf')">📄 PDF</button>
+      <button type="button" class="btn btn-blue" data-mmp-perm="add" onclick="mmpTryAdd('shop')">＋ Naya Shop</button>
     </div>
   </div>
   <!-- Filter -->
@@ -375,7 +446,7 @@ main{max-width:100%;padding:12px 10px;}
     <div class="th2">
       <div class="ttl">📋 All Shops <span class="rcnt" id="shops-cnt">0</span></div>
       <div id="bulk-bar-shops" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
-        <button type="button" class="btn btn-red btn-sm" onclick="deleteShopBulk()">🗑️ Selected delete (<span id="bulk-cnt-shops">0</span>)</button>
+        <button type="button" class="btn btn-red btn-sm" data-mmp-perm="delete" onclick="deleteShopBulk()">🗑️ Selected delete (<span id="bulk-cnt-shops">0</span>)</button>
       </div>
     </div>
     <div class="tsc"><table>
@@ -391,12 +462,12 @@ main{max-width:100%;padding:12px 10px;}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div class="stl">🛍️ Bardana <span>Management</span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="openImport('bardana')">📥 Import CSV</button>
-      <button class="btn btn-green btn-sm" onclick="exportSection('bardana','excel')">📊 Excel</button>
-      <button class="btn btn-red btn-sm" onclick="exportSection('bardana','pdf')">📄 PDF</button>
-      <button class="btn btn-blue" onclick="prepNewBardanaIssue();openModal('bardana-issue-modal')">＋ Issue Bardana</button>
-      <button class="btn btn-amber" onclick="prepNewBardanaReturn();openModal('bardana-return-modal')">↩ Return Bardana</button>
-      <button class="btn btn-purple" onclick="prepNewBardanaJournal();openModal('bardana-journal-modal')">📒 Party Transfer</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-mmp-perm="import" onclick="openImport('bardana')">📥 Import CSV</button>
+      <button type="button" class="btn btn-green btn-sm" data-mmp-perm="export" onclick="exportSection('bardana','excel')">📊 Excel</button>
+      <button type="button" class="btn btn-red btn-sm" data-mmp-perm="export" onclick="exportSection('bardana','pdf')">📄 PDF</button>
+      <button type="button" class="btn btn-blue" data-mmp-perm="add" onclick="mmpTryAdd('bardana_issue')">＋ Issue Bardana</button>
+      <button type="button" class="btn btn-amber" data-mmp-perm="add" onclick="mmpTryAdd('bardana_return')">↩ Return Bardana</button>
+      <button type="button" class="btn btn-purple" data-mmp-perm="add" onclick="mmpTryAdd('bardana_journal')">📒 Party Transfer</button>
     </div>
   </div>
   <!-- Global bardana KPIs (same style as Purchase summary bar) -->
@@ -436,8 +507,8 @@ main{max-width:100%;padding:12px 10px;}
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <select class="fs" id="bardana-ledger-shop" style="min-width:180px"><option value="">— Party chunein —</option></select>
         <button class="btn btn-blue btn-sm" onclick="renderBardanaLedgerReport()">📋 Ledger dikhao</button>
-        <button class="btn btn-green btn-sm" onclick="exportBardanaLedger('excel')">📊 Excel</button>
-        <button class="btn btn-red btn-sm" onclick="exportBardanaLedger('pdf')">📄 PDF</button>
+        <button type="button" class="btn btn-green btn-sm" data-mmp-perm="export" onclick="exportBardanaLedger('excel')">📊 Excel</button>
+        <button type="button" class="btn btn-red btn-sm" data-mmp-perm="export" onclick="exportBardanaLedger('pdf')">📄 PDF</button>
       </div>
     </div>
     <div id="bardana-ledger-out" style="padding:14px;font-size:12px;color:var(--text3)">Upar se party select karke “Ledger dikhao” dabayein.</div>
@@ -462,10 +533,10 @@ main{max-width:100%;padding:12px 10px;}
       <div class="ttl">📋 Bardana Records <span class="rcnt" id="bardana-cnt">0</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <div id="bulk-bar-bardana" style="display:none;align-items:center;gap:8px">
-          <button type="button" class="btn btn-red btn-sm" onclick="deleteBardanaBulk()">🗑️ Selected (<span id="bulk-cnt-bardana">0</span>)</button>
+          <button type="button" class="btn btn-red btn-sm" data-mmp-perm="delete" onclick="deleteBardanaBulk()">🗑️ Selected (<span id="bulk-cnt-bardana">0</span>)</button>
         </div>
-        <button class="btn btn-green btn-sm" onclick="exportFiltered('bardana','excel')">📊 Export Excel</button>
-        <button class="btn btn-red btn-sm" onclick="exportFiltered('bardana','pdf')">📄 Export PDF</button>
+        <button type="button" class="btn btn-green btn-sm" data-mmp-perm="export" onclick="exportFiltered('bardana','excel')">📊 Export Excel</button>
+        <button type="button" class="btn btn-red btn-sm" data-mmp-perm="export" onclick="exportFiltered('bardana','pdf')">📄 Export PDF</button>
       </div>
     </div>
     <div class="tsc"><table>
@@ -478,7 +549,7 @@ main{max-width:100%;padding:12px 10px;}
     <div class="th2">
       <div class="ttl">📒 Party → Party Journal Log</div>
       <div id="bulk-bar-bjournal" style="display:none;align-items:center;gap:8px">
-        <button type="button" class="btn btn-red btn-sm" onclick="deleteBardanaJournalBulk()">🗑️ Selected (<span id="bulk-cnt-bjournal">0</span>)</button>
+        <button type="button" class="btn btn-red btn-sm" data-mmp-perm="delete" onclick="deleteBardanaJournalBulk()">🗑️ Selected (<span id="bulk-cnt-bjournal">0</span>)</button>
       </div>
     </div>
     <div class="tsc"><table>
@@ -493,10 +564,10 @@ main{max-width:100%;padding:12px 10px;}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div class="stl">📦 Purchase <span>Records</span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="openImport('purchase')">📥 Bulk Import CSV</button>
-      <button class="btn btn-green btn-sm" onclick="exportFiltered('purchase','excel')">📊 Export Excel</button>
-      <button class="btn btn-red btn-sm" onclick="exportFiltered('purchase','pdf')">📄 Export PDF</button>
-      <button class="btn btn-blue" onclick="prepNewPurchaseModal();openModal('purchase-modal')">＋ Naya Purchase</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-mmp-perm="import" onclick="openImport('purchase')">📥 Bulk Import CSV</button>
+      <button type="button" class="btn btn-green btn-sm" data-mmp-perm="export" onclick="exportFiltered('purchase','excel')">📊 Export Excel</button>
+      <button type="button" class="btn btn-red btn-sm" data-mmp-perm="export" onclick="exportFiltered('purchase','pdf')">📄 Export PDF</button>
+      <button type="button" class="btn btn-blue" data-mmp-perm="add" onclick="mmpTryAdd('purchase')">＋ Naya Purchase</button>
     </div>
   </div>
   <!-- Filter -->
@@ -526,7 +597,7 @@ main{max-width:100%;padding:12px 10px;}
     <div class="th2">
       <div class="ttl">📦 Purchase Lots (Rate-wise) <span class="rcnt" id="purchase-cnt">0</span></div>
       <div id="bulk-bar-purchase" style="display:none;align-items:center;gap:8px">
-        <button type="button" class="btn btn-red btn-sm" onclick="deletePurchaseBulk()">🗑️ Selected (<span id="bulk-cnt-purchase">0</span>)</button>
+        <button type="button" class="btn btn-red btn-sm" data-mmp-perm="delete" onclick="deletePurchaseBulk()">🗑️ Selected (<span id="bulk-cnt-purchase">0</span>)</button>
       </div>
     </div>
     <div class="tsc"><table>
@@ -542,10 +613,10 @@ main{max-width:100%;padding:12px 10px;}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div class="stl">🚛 Lifting <span>Records</span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="openImport('lifting')">📥 Bulk Import CSV</button>
-      <button class="btn btn-green btn-sm" onclick="exportFiltered('lifting','excel')">📊 Export Excel</button>
-      <button class="btn btn-red btn-sm" onclick="exportFiltered('lifting','pdf')">📄 Export PDF</button>
-      <button class="btn btn-amber" onclick="openLiftingModalNew()">🚛 New Lifting</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-mmp-perm="import" onclick="openImport('lifting')">📥 Bulk Import CSV</button>
+      <button type="button" class="btn btn-green btn-sm" data-mmp-perm="export" onclick="exportFiltered('lifting','excel')">📊 Export Excel</button>
+      <button type="button" class="btn btn-red btn-sm" data-mmp-perm="export" onclick="exportFiltered('lifting','pdf')">📄 Export PDF</button>
+      <button type="button" class="btn btn-amber" data-mmp-perm="add" onclick="mmpTryAdd('lifting')">🚛 New Lifting</button>
     </div>
   </div>
   <!-- Filter -->
@@ -569,7 +640,7 @@ main{max-width:100%;padding:12px 10px;}
     <div class="th2">
       <div class="ttl">🚛 Lifting Records <span class="rcnt" id="lifting-cnt">0</span></div>
       <div id="bulk-bar-lifting" style="display:none;align-items:center;gap:8px">
-        <button type="button" class="btn btn-red btn-sm" onclick="deleteLiftingBulk()">🗑️ Selected (<span id="bulk-cnt-lifting">0</span>)</button>
+        <button type="button" class="btn btn-red btn-sm" data-mmp-perm="delete" onclick="deleteLiftingBulk()">🗑️ Selected (<span id="bulk-cnt-lifting">0</span>)</button>
       </div>
     </div>
     <div class="tsc"><table>
@@ -585,8 +656,8 @@ main{max-width:100%;padding:12px 10px;}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div class="stl">📈 Reports & <span>Analytics</span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-green btn-sm" onclick="exportCurrentReport('excel')">📊 Export Excel</button>
-      <button class="btn btn-red btn-sm" onclick="exportCurrentReport('pdf')">📄 Export PDF</button>
+      <button type="button" class="btn btn-green btn-sm" data-mmp-perm="export" onclick="exportCurrentReport('excel')">📊 Export Excel</button>
+      <button type="button" class="btn btn-red btn-sm" data-mmp-perm="export" onclick="exportCurrentReport('pdf')">📄 Export PDF</button>
       <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Print</button>
     </div>
   </div>
@@ -626,7 +697,7 @@ main{max-width:100%;padding:12px 10px;}
           <div class="fg2x"><div class="flbl">Phone</div><input class="finp" id="s-phone" placeholder="Phone no."></div>
           <div class="fg2x"><div class="flbl">GSTIN</div><input class="finp" id="s-gstin" placeholder="GST number"></div>
         </div>
-        <button class="btn btn-blue" style="margin-top:12px" onclick="saveSettings()">💾 Save</button>
+        <button type="button" class="btn btn-blue" style="margin-top:12px" data-mmp-perm="edit" onclick="saveSettings()">💾 Save</button>
       </div>
     </div>
     <!-- Defaults -->
@@ -649,8 +720,19 @@ main{max-width:100%;padding:12px 10px;}
           <div><div class="setting-lbl">Grade Manager</div><div class="setting-sub">Comma ya har line pe ek grade — Purchase / filters mein use hoga</div></div>
           <textarea class="finp" id="s-grades" rows="4" style="width:100%;resize:vertical;font-family:inherit" placeholder="A&#10;B&#10;C&#10;Mixed"></textarea>
         </div>
-        <button class="btn btn-blue" style="margin-top:12px" onclick="saveSettings()">💾 Save</button>
+        <button type="button" class="btn btn-blue" style="margin-top:12px" data-mmp-perm="edit" onclick="saveSettings()">💾 Save</button>
       </div>
+    </div>
+  </div>
+  <!-- Admin: users + edit-request queue (sirf admin ko dikhega) -->
+  <div class="tw" id="mmp-admin-settings-block" style="margin-top:16px;max-width:960px;display:none">
+    <div class="th2"><div class="ttl">🛡️ Admin panel — Users & edit requests</div></div>
+    <div style="padding:16px">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.45">ACL path: <code style="font-size:11px;background:var(--s2);padding:2px 6px;border-radius:4px">businessApps/mandiMaizeUltimateAcl</code>. <strong>Zaroori:</strong> Firebase Console → Realtime Database → Rules mein is path ko sirf <code>auth != null</code> users ke liye likhein; warna koi bhi ACL / grants browser se badal sakta hai.</p>
+      <div class="sec-title" style="margin-top:4px">✉ Pending edit requests</div>
+      <div id="mmp-edit-requests-list" style="margin-bottom:18px;min-height:24px"></div>
+      <div class="sec-title">👥 Users (login kar chuke)</div>
+      <div id="mmp-admin-users-list"></div>
     </div>
   </div>
   <!-- Cloud sync (Firebase RTDB — alag node; doosri app ka data mix nahi hoga) -->
@@ -670,22 +752,23 @@ main{max-width:100%;padding:12px 10px;}
     <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
       <div class="setting-row" style="border:none;padding:0">
         <div><div class="setting-lbl">Export All Data (Backup)</div><div class="setting-sub">Poora data JSON file mein download karein</div></div>
-        <button class="btn btn-green" onclick="exportAllData()">📥 Backup Download</button>
+        <button type="button" class="btn btn-green" data-mmp-perm="export" onclick="exportAllData()">📥 Backup Download</button>
       </div>
       <div class="setting-row" style="border:none;padding:0">
         <div><div class="setting-lbl">Import Backup</div><div class="setting-sub">JSON backup se data restore karein</div></div>
-        <button class="btn btn-blue" onclick="document.getElementById('backup-import-inp').click()">📤 Restore Backup</button>
+        <button type="button" class="btn btn-blue" data-mmp-perm="import" onclick="document.getElementById('backup-import-inp').click()">📤 Restore Backup</button>
         <input type="file" id="backup-import-inp" accept=".json" style="display:none" onchange="importBackup(event)">
       </div>
       <div class="setting-row" style="border:none;padding:0">
         <div><div class="setting-lbl" style="color:var(--red)">Sab Data Delete</div><div class="setting-sub">⚠️ Ye action undo nahi hoga!</div></div>
-        <button class="btn btn-red" onclick="clearAllData()">🗑️ All Data Clear</button>
+        <button type="button" class="btn btn-red" data-mmp-perm="delete" onclick="clearAllData()">🗑️ All Data Clear</button>
       </div>
     </div>
   </div>
 </div>
 
 </main>
+</div><!-- /.app-wrap -->
 
 <!-- ═══════════════════════════════════════════════════════════
      MODALS
@@ -894,6 +977,30 @@ main{max-width:100%;padding:12px 10px;}
   </div>
 </div>
 
+<!-- EDIT PERMISSION REQUEST (user → admin) -->
+<div class="ov" id="edit-request-modal">
+  <div class="modal-box modal-sm">
+    <div class="mh"><div class="mt">✉ Admin se edit permission</div><button class="mx" onclick="closeModal('edit-request-modal')">✕</button></div>
+    <div class="mb">
+      <input type="hidden" id="er-section"><input type="hidden" id="er-entity">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:10px" id="er-title-lbl"></p>
+      <div class="fg2x"><div class="flbl">Message (optional)</div><textarea class="finp" id="er-note" rows="3" placeholder="Kyun edit chahiye…"></textarea></div>
+    </div>
+    <div class="mf"><div></div><div style="display:flex;gap:8px"><button type="button" class="btn btn-ghost" onclick="closeModal('edit-request-modal')">Cancel</button><button type="button" class="btn btn-blue" onclick="mmpSubmitEditRequest()">Request bhejo</button></div></div>
+  </div>
+</div>
+
+<!-- RATE CHART FULL VIEW (zyada rates — neeche scroll kam, landscape par 3 column) -->
+<div class="ov" id="rate-chart-modal">
+  <div class="modal-box modal-lg">
+    <div class="mh"><div class="mt">💰 Rate-wise — poori list</div><button class="mx" onclick="closeModal('rate-chart-modal')">✕</button></div>
+    <div class="mb rate-chart-modal-scroll">
+      <p class="rate-chart-hint">Yahan poora chart hai. Phone ko <strong>landscape</strong> mein karne par (wide mode) zyada columns dikhengi. Dashboard par chhota scroll box se page chhota rehta hai.</p>
+      <div class="dash-chart-rates-pad dash-chart-rates-cols" id="rate-chart-modal-body"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // DATA MODEL
@@ -919,6 +1026,274 @@ const FIREBASE_CONFIG = {
 };
 /** Mandi app ka dedicated node — doosri web app ke liye yahan na likhein (alag child use karein). */
 const RTDB_APP_PATH = 'businessApps/mandiMaizeUltimate';
+/** Users / roles / edit-requests — alag root taake mandi data structure same rahe */
+const RTDB_ACL_ROOT = 'businessApps/mandiMaizeUltimateAcl';
+/** false = purana behavior: koi login nahi, sab permissions full (sirf testing) */
+/** true = login zaroori. false = login skip (testing). Firebase login ke liye true + page ko http://localhost se kholo (file:// par Auth fail hota hai). */
+const MMP_REQUIRE_AUTH = true;
+/** Apna admin email yahan likhein (chhota + lower case). Agar list khali hai to pehla register/login wala user admin banega. */
+const MMP_ADMIN_EMAILS = [];
+
+let mmpUser = null;
+let mmpProfile = { role:'user', perms:{view:true,add:true,edit:true,delete:true,export:true,import:true} };
+let mmpGrantsFlat = {};
+let mmpGrantsUnsub = null;
+
+function mmpEnsureFirebaseApp(){
+  try{
+    if(typeof firebase==='undefined') return;
+    if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  }catch(e){ console.error(e); }
+}
+function mmpIsAdmin(){
+  if(!MMP_REQUIRE_AUTH) return true;
+  if(!mmpUser||!mmpProfile) return false;
+  if(mmpProfile.role==='admin') return true;
+  const em=(mmpUser.email||'').toLowerCase().trim();
+  return MMP_ADMIN_EMAILS.some(x=>String(x||'').toLowerCase().trim()===em);
+}
+function can(k){
+  if(!MMP_REQUIRE_AUTH) return true;
+  if(mmpIsAdmin()) return true;
+  return !!(mmpProfile&&mmpProfile.perms&&mmpProfile.perms[k]);
+}
+function canEditEntity(section, entityId){
+  if(!MMP_REQUIRE_AUTH) return true;
+  if(!entityId) return can('edit');
+  if(can('edit')) return true;
+  return !!mmpGrantsFlat[`${section}/${entityId}`];
+}
+function mmpTryAdd(kind){
+  if(!can('add')) return toast('Add ki permission nahi hai','e');
+  if(kind==='shop'){ clr('shop-edit-id','s-name','s-owner','s-phone2','s-loc','s-note'); E('shop-modal-title').textContent='🏪 Naya Shop Add'; openModal('shop-modal'); }
+  else if(kind==='purchase'){ prepNewPurchaseModal(); openModal('purchase-modal'); }
+  else if(kind==='bardana_issue'){ prepNewBardanaIssue(); openModal('bardana-issue-modal'); }
+  else if(kind==='bardana_return'){ prepNewBardanaReturn(); openModal('bardana-return-modal'); }
+  else if(kind==='bardana_journal'){ prepNewBardanaJournal(); openModal('bardana-journal-modal'); }
+  else if(kind==='lifting'){ openLiftingModalNew(); }
+}
+function mmpAuthLogout(){
+  if(!MMP_REQUIRE_AUTH) return toast('Auth band hai (MMP_REQUIRE_AUTH = false)','i');
+  if(typeof firebase!=='undefined'&&firebase.auth) firebase.auth().signOut();
+}
+function mmpSetAuthStatus(msg,isErr){
+  const el=E('mmp-auth-status');
+  if(!el) return;
+  if(!msg){ el.style.display='none'; el.textContent=''; return; }
+  el.style.display='block';
+  el.textContent=msg;
+  el.style.borderColor=isErr?'var(--red)':'var(--green)';
+  el.style.background=isErr?'var(--rbg)':'var(--gbg)';
+  el.style.color=isErr?'var(--red)':'var(--green)';
+}
+function mmpShowAuthEnvHints(){
+  const hint=E('mmp-auth-file-hint');
+  if(hint) hint.style.display=(window.location.protocol==='file:')?'block':'none';
+}
+function mmpAuthErrorMessage(e){
+  const c=e&&e.code;
+  const map={
+    'auth/invalid-email':'Email format theek nahi.',
+    'auth/user-disabled':'Yeh account band hai.',
+    'auth/user-not-found':'Email se koi user nahi mila — Firebase Console → Users mein wahi email hai?',
+    'auth/wrong-password':'Password galat.',
+    'auth/invalid-credential':'Email ya password galat (ya account nahi).',
+    'auth/network-request-failed':'Internet / network check karein.',
+    'auth/unauthorized-domain':'Ye website URL allow nahi. <strong>localhost</strong> se kholo + Firebase → Auth → Settings → Authorized domains mein <code>localhost</code> ho.',
+    'auth/operation-not-allowed':'Firebase mein Email/Password sign-in ON karein.',
+    'auth/too-many-requests':'Bahut koshishein — thodi der baad try karein.'
+  };
+  return map[c]||(e&&e.message)||String(e);
+}
+async function mmpAuthLogin(){
+  mmpShowAuthEnvHints();
+  mmpEnsureFirebaseApp();
+  if(typeof firebase==='undefined'||!firebase.auth){ mmpSetAuthStatus('Firebase load nahi hua — internet check karein.',true); return; }
+  const email=(E('mmp-auth-email')&&V('mmp-auth-email'))||'';
+  const pw=(E('mmp-auth-pass')&&V('mmp-auth-pass'))||'';
+  if(!email||!pw){ mmpSetAuthStatus('Email aur password dono bharein.',true); toast('Email aur password likhein','e'); return; }
+  const btn=E('mmp-btn-login'), reg=E('mmp-btn-register');
+  if(btn) btn.disabled=true; if(reg) reg.disabled=true;
+  mmpSetAuthStatus('Login ho raha hai…',false);
+  try{
+    await firebase.auth().signInWithEmailAndPassword(email,pw);
+    mmpSetAuthStatus('Theek — app khul rahi hai…',false);
+  }catch(e){
+    const msg=mmpAuthErrorMessage(e);
+    console.error('mmpAuthLogin',e);
+    mmpSetAuthStatus(msg,true);
+    toast(msg,'e');
+  }finally{
+    if(btn) btn.disabled=false; if(reg) reg.disabled=false;
+  }
+}
+async function mmpAuthRegister(){
+  mmpShowAuthEnvHints();
+  mmpEnsureFirebaseApp();
+  if(typeof firebase==='undefined'||!firebase.auth){ mmpSetAuthStatus('Firebase load nahi hua.',true); return; }
+  const email=(E('mmp-auth-email')&&V('mmp-auth-email'))||'';
+  const pw=(E('mmp-auth-pass')&&V('mmp-auth-pass'))||'';
+  if(!email||!pw){ mmpSetAuthStatus('Email aur password dono bharein.',true); return; }
+  if(pw.length<6){ mmpSetAuthStatus('Password kam az kam 6 character.',true); return; }
+  const btn=E('mmp-btn-login'), reg=E('mmp-btn-register');
+  if(btn) btn.disabled=true; if(reg) reg.disabled=true;
+  mmpSetAuthStatus('Account ban raha hai…',false);
+  try{
+    await firebase.auth().createUserWithEmailAndPassword(email,pw);
+    mmpSetAuthStatus('Account ban gaya — ab auto login ho sakta hai.',false);
+    toast('Account ban gaya ✅','s');
+  }catch(e){
+    const msg=mmpAuthErrorMessage(e);
+    console.error('mmpAuthRegister',e);
+    mmpSetAuthStatus(msg,true);
+    toast(msg,'e');
+  }finally{
+    if(btn) btn.disabled=false; if(reg) reg.disabled=false;
+  }
+}
+async function ensureMmpUserProfile(user){
+  const refU=firebase.database().ref(RTDB_ACL_ROOT+'/users/'+user.uid);
+  const snap=await refU.once('value');
+  let data=snap.val();
+  const email=(user.email||'').toLowerCase().trim();
+  const def={view:true,add:false,edit:false,delete:false,export:true,import:false};
+  const full={view:true,add:true,edit:true,delete:true,export:true,import:true};
+  if(!data){
+    const firstAdmin=MMP_ADMIN_EMAILS.length===0||MMP_ADMIN_EMAILS.some(x=>String(x||'').toLowerCase().trim()===email);
+    data={
+      email:user.email||'',
+      displayName:user.displayName||'',
+      role:firstAdmin?'admin':'user',
+      perms:firstAdmin?full:{...def}
+    };
+    await refU.set(data);
+  }
+  mmpProfile=data;
+}
+function mmpFlattenGrants(val){
+  const g={};
+  if(!val||typeof val!=='object') return g;
+  Object.keys(val).forEach(sec=>{
+    const sub=val[sec];
+    if(sub&&typeof sub==='object')
+      Object.keys(sub).forEach(eid=>{ if(sub[eid]) g[`${sec}/${eid}`]=true; });
+  });
+  return g;
+}
+function mmpAttachGrantsListener(uid){
+  if(mmpGrantsUnsub){ try{mmpGrantsUnsub();}catch(e){} mmpGrantsUnsub=null; }
+  const r=firebase.database().ref(RTDB_ACL_ROOT+'/editGrants/'+uid);
+  const handler=snap=>{
+    mmpGrantsFlat=mmpFlattenGrants(snap.val());
+    renderShops(); renderBardanaTable(); renderPurchaseTable(); renderLiftingTable();
+  };
+  r.on('value', handler);
+  mmpGrantsUnsub=()=>r.off('value', handler);
+}
+function mmpRequestEditOpen(section, entityId){
+  if(!MMP_REQUIRE_AUTH) return;
+  setV('er-section',section); setV('er-entity',entityId); setV('er-note','');
+  const labels={shop:'Shop',purchase:'Purchase lot',lifting:'Lifting',bardana:'Bardana',bjournal:'Bardana journal'};
+  E('er-title-lbl').textContent=(labels[section]||section)+' — '+entityId.slice(-8);
+  openModal('edit-request-modal');
+}
+function mmpSubmitEditRequest(){
+  if(!mmpUser) return;
+  const section=V('er-section'), entityId=V('er-entity'), note=V('er-note');
+  if(!section||!entityId) return toast('Data missing','e');
+  const ref=firebase.database().ref(RTDB_ACL_ROOT+'/editRequests').push();
+  ref.set({
+    fromUid:mmpUser.uid, fromEmail:mmpUser.email||'', section, entityId, note:note||'',
+    status:'pending', createdAt:Date.now()
+  }).then(()=>{ toast('Admin ko request chali gayi ✉️','s'); closeModal('edit-request-modal'); })
+    .catch(e=>toast('Request save fail: '+e.message,'e'));
+}
+function mmpApproveRequest(reqId, uid, section, entityId){
+  if(!mmpIsAdmin()) return toast('Sirf admin','e');
+  const u={};
+  u[RTDB_ACL_ROOT+'/editRequests/'+reqId+'/status']='approved';
+  u[RTDB_ACL_ROOT+'/editRequests/'+reqId+'/resolvedAt']=Date.now();
+  u[RTDB_ACL_ROOT+'/editRequests/'+reqId+'/resolvedBy']=mmpUser.uid;
+  u[RTDB_ACL_ROOT+'/editGrants/'+uid+'/'+section+'/'+entityId]={at:Date.now(), by:mmpUser.uid};
+  firebase.database().ref().update(u).then(()=>toast('Edit permission de di ✓','s')).catch(e=>toast(e.message,'e'));
+}
+function mmpRejectRequest(reqId){
+  if(!mmpIsAdmin()) return;
+  firebase.database().ref(RTDB_ACL_ROOT+'/editRequests/'+reqId).update({status:'rejected',resolvedAt:Date.now(),resolvedBy:mmpUser.uid})
+    .then(()=>toast('Request reject','i')).catch(e=>toast(e.message,'e'));
+}
+function mmpSaveUserAcl(uid, role, perms){
+  if(!mmpIsAdmin()) return toast('Sirf admin','e');
+  firebase.database().ref(RTDB_ACL_ROOT+'/users/'+uid).update({role, perms}).then(()=>toast('User ACL save ✓','s')).catch(e=>toast(e.message,'e'));
+}
+function renderMmpAdminPanel(){
+  const box=E('mmp-admin-users-list'), reqBox=E('mmp-edit-requests-list');
+  if(!box||!mmpIsAdmin()) return;
+  firebase.database().ref(RTDB_ACL_ROOT+'/users').once('value').then(snap=>{
+    const v=snap.val()||{};
+    box.innerHTML=Object.keys(v).map(uid=>{
+      const u=v[uid]; const p=u.perms||{};
+      const chk=(k)=>p[k]?'checked':'';
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--s2)">
+        <div style="font-weight:700;margin-bottom:8px;font-size:13px">${escHtml(u.email||uid)} <small style="color:var(--text3)">${uid.slice(0,8)}…</small></div>
+        <label style="font-size:11px;margin-right:10px">Role <select class="finp" style="width:auto;display:inline-block" id="acl-role-${uid}">
+          <option value="user" ${u.role!=='admin'?'selected':''}>User</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+        </select></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:11px">
+          <label><input type="checkbox" id="acl-${uid}-view" ${chk('view')}> View</label>
+          <label><input type="checkbox" id="acl-${uid}-add" ${chk('add')}> Add</label>
+          <label><input type="checkbox" id="acl-${uid}-edit" ${chk('edit')}> Edit (sab entries)</label>
+          <label><input type="checkbox" id="acl-${uid}-delete" ${chk('delete')}> Delete</label>
+          <label><input type="checkbox" id="acl-${uid}-export" ${chk('export')}> Export</label>
+          <label><input type="checkbox" id="acl-${uid}-import" ${chk('import')}> Import</label>
+        </div>
+        <button type="button" class="btn btn-blue btn-sm" style="margin-top:8px" onclick="mmpSaveUserAclUi('${uid}')">💾 Save user</button>
+      </div>`;
+    }).join('')||'<p style="color:var(--text3)">Koi user abhi login nahi hua.</p>';
+  });
+  firebase.database().ref(RTDB_ACL_ROOT+'/editRequests').once('value').then(snap=>{
+    const v=snap.val()||{};
+    const pend=Object.entries(v).filter(([,r])=>r&&r.status==='pending');
+    reqBox.innerHTML=pend.length?pend.map(([id,r])=>`<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;font-size:12px">
+      <strong>${escHtml(r.fromEmail||r.fromUid)}</strong> → ${escHtml(r.section)} / <code>${escHtml(r.entityId)}</code>
+      <div style="color:var(--text3);margin:4px 0">${escHtml(r.note||'—')}</div>
+      <button type="button" class="btn btn-green btn-sm" onclick='mmpApproveRequest(${JSON.stringify(id)},${JSON.stringify(r.fromUid)},${JSON.stringify(r.section)},${JSON.stringify(r.entityId)})'>✅ Allow edit</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick='mmpRejectRequest(${JSON.stringify(id)})'>✕ Reject</button>
+    </div>`).join(''):'<p style="color:var(--text3)">Koi pending request nahi.</p>';
+  });
+}
+function mmpSaveUserAclUi(uid){
+  const role=V('acl-role-'+uid);
+  const perms={
+    view:!!E('acl-'+uid+'-view')&&E('acl-'+uid+'-view').checked,
+    add:!!E('acl-'+uid+'-add')&&E('acl-'+uid+'-add').checked,
+    edit:!!E('acl-'+uid+'-edit')&&E('acl-'+uid+'-edit').checked,
+    delete:!!E('acl-'+uid+'-delete')&&E('acl-'+uid+'-delete').checked,
+    export:!!E('acl-'+uid+'-export')&&E('acl-'+uid+'-export').checked,
+    import:!!E('acl-'+uid+'-import')&&E('acl-'+uid+'-import').checked
+  };
+  mmpSaveUserAcl(uid, role||'user', perms);
+}
+function mmpApplyStaticButtonVisibility(){
+  if(!MMP_REQUIRE_AUTH) return;
+  document.querySelectorAll('[data-mmp-perm]').forEach(el=>{
+    const k=el.getAttribute('data-mmp-perm');
+    el.style.display=can(k)?'':'none';
+  });
+  const adm=E('mmp-admin-settings-block');
+  if(adm) adm.style.display=mmpIsAdmin()?'block':'none';
+}
+function mmpRowEditDel(section, entityId, editJsCall, deleteJsCall){
+  let html='';
+  if(can('edit')||canEditEntity(section,entityId))
+    html+=`<button type="button" class="ab2 e" title="Edit" onclick="${editJsCall}">✏</button>`;
+  else if(can('view'))
+    html+=`<button type="button" class="ab2 e" title="Admin se edit permission" style="opacity:.9" onclick="mmpRequestEditOpen('${section}','${entityId}')">✉</button>`;
+  if(can('delete')&&deleteJsCall)
+    html+=`<button type="button" class="ab2 d" title="Delete" onclick="${deleteJsCall}">🗑</button>`;
+  return html;
+}
 
 let firebaseApp = null;
 let firebaseDbRef = null;
@@ -960,6 +1335,9 @@ function applyRemoteToDb(val){
 }
 
 function pushFirebaseNow(showToast){
+  if(MMP_REQUIRE_AUTH && !(can('add')||can('edit')||can('delete')||can('import'))){
+    if(showToast) toast('Cloud sync ke liye kam se kam add/edit/import/delete mein se ek permission chahiye','e'); return;
+  }
   if(!firebaseReady || !firebaseDbRef){ if(showToast) toast('Firebase abhi tayar nahi — page refresh karein','e'); return; }
   const payload = packDbForCloud();
   lastFirebasePayloadSent = JSON.stringify(payload);
@@ -1199,6 +1577,7 @@ function goTab(id, btn){
   (btn||E('tab-'+id)).classList.add('active');
   currentTab=id;
   if(id==='reports') renderCurrentReport();
+  if(id==='settings' && mmpIsAdmin()) renderMmpAdminPanel();
 }
 
 // ── MODALS ──
@@ -1259,6 +1638,10 @@ function saveShop(){
   const name=V('s-name').trim();
   if(!name) return toast('Shop naam likhein!','e');
   const editId=V('shop-edit-id');
+  if(MMP_REQUIRE_AUTH){
+    if(editId){ if(!canEditEntity('shop',editId)) return toast('Is shop ko edit ki permission nahi (admin se ✉ request karein)','e'); }
+    else if(!can('add')) return toast('Naya shop add ki permission nahi','e');
+  }
   const shop={id:editId||uid(),name,owner:V('s-owner'),phone:V('s-phone2'),location:V('s-loc'),note:V('s-note'),createdAt:editId?(db.shops.find(s=>s.id===editId)||{}).createdAt:new Date().toISOString()};
   if(editId){ const idx=db.shops.findIndex(s=>s.id===editId); if(idx>-1) db.shops[idx]=shop; }
   else db.shops.push(shop);
@@ -1269,6 +1652,7 @@ function saveShop(){
 }
 
 function editShop(id){
+  if(MMP_REQUIRE_AUTH && !canEditEntity('shop',id)) return toast('Edit ki permission nahi — table mein ✉ dabayein','e');
   const s=db.shops.find(x=>x.id===id); if(!s) return;
   setV('shop-edit-id',id);setV('s-name',s.name);setV('s-owner',s.owner);setV('s-phone2',s.phone);setV('s-loc',s.location);setV('s-note',s.note);
   E('shop-modal-title').textContent='✏️ Shop Edit';
@@ -1285,6 +1669,7 @@ function purgeShopCascade(id){
   }).filter(l=>liftingParties(l).length>0);
 }
 function deleteShop(id){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   confirmDel('Shop delete karne se uske saare purchase, bardana, lifting records bhi delete honge. Confirm?',()=>{
     purgeShopCascade(id);
     db.shops=db.shops.filter(s=>s.id!==id);
@@ -1293,6 +1678,7 @@ function deleteShop(id){
   });
 }
 function deleteShopBulk(){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   const ids=getBulkIds('shops');
   if(!ids.length) return toast('Pehle shops tick karein','e');
   confirmDel(ids.length+' shops delete? Saara linked data hat jayega.',()=>{
@@ -1312,7 +1698,7 @@ function viewShopDetail(id){
   E('shop-detail-title').textContent='🏪 '+s.name+' — Details';
   const rateLots=purchases.map(p=>{
     const l=getLiftedFromLot(p.id); const rem=p.bags-l;
-    return rem>0?`<div class="lot-chip">₹${fmt(p.rate)}/Qtl: ${rem} bags baaki</div>`:'';
+    return rem>0?`<span class="lot-chip">₹${fmt(p.rate)}/Qtl: ${rem} bags baaki</span>`:'';
   }).filter(Boolean).join('');
 
   E('shop-detail-body').innerHTML=`
@@ -1323,7 +1709,7 @@ function viewShopDetail(id){
         ${[['Total Kharida',fmt(bought),'#60a5fa'],['Total Lifted',fmt(lifted),'#4ade80'],['Baaki Stock',fmt(pending),pending>0?'#fbbf24':'#4ade80'],['Bardana Diya',fmt(bIssued),'#c4b5fd'],['Bardana Baaki',fmt(bOut),bOut>0?'#f87171':'#4ade80'],bOwn>0?['Party apna bardana',fmt(bOwn),'#fbbf24']:null].filter(Boolean).map(([l,v,c])=>`<div style="text-align:center;background:rgba(255,255,255,.12);padding:8px;border-radius:6px"><div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:${c}">${v}</div><div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">${l}</div></div>`).join('')}
       </div>
     </div>
-    <div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--blue2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Rate-wise Baaki Stock</div>${rateLots||'<span style="color:var(--text3);font-size:12px">Koi stock nahi</span>'}</div>
+    <div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--blue2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Rate-wise Baaki Stock</div><div class="cell-chips-inner">${rateLots||'<span style="color:var(--text3);font-size:12px">Koi stock nahi</span>'}</div></div>
     <div class="tw" style="margin-bottom:12px">
       <div class="th2"><div class="ttl">📦 Purchase Lots</div></div>
       <div class="tsc"><table><thead><tr><th>Date</th><th>Rate/Qtl</th><th>Grade</th><th>Bags</th><th>Lifted</th><th>Pending</th><th>Value</th></tr></thead>
@@ -1339,9 +1725,9 @@ function viewShopDetail(id){
         const party=liftingParties(l).find(p=>p.shopId===id);
         const lots=party?party.lots:(l.lots||[]);
         const total=lots.reduce((s,x)=>s+x.bags,0);
-        const bd=lots.map(x=>{const p=db.purchases.find(y=>y.id===x.purchaseId);return p?`₹${fmt(p.rate)}: ${x.bags}bg`:''}).filter(Boolean).join(', ');
+        const bd=lots.map(x=>{const p=db.purchases.find(y=>y.id===x.purchaseId);return p?`<span class="lot-chip">₹${fmt(p.rate)}: ${x.bags}bg</span>`:''}).filter(Boolean).join('');
         const other=liftingParties(l).filter(p=>p.shopId!==id).map(p=>getShopName(p.shopId)).join(', ');
-        return `<tr><td>${l.date}</td><td><span class="badge badge-green">${l.gatepass}</span>${other?` <span style="font-size:10px;color:var(--text3)">+${other}</span>`:''}</td><td><span class="badge badge-blue">${l.vehicle}</span></td><td><strong style="color:var(--yellow)">${total}</strong></td><td style="font-size:11px;color:var(--text2)">${bd}</td><td>${l.driver||'-'}</td></tr>`;
+        return `<tr><td>${l.date}</td><td><span class="badge badge-green">${l.gatepass}</span>${other?` <span style="font-size:10px;color:var(--text3)">+${other}</span>`:''}</td><td><span class="badge badge-blue">${l.vehicle}</span></td><td><strong style="color:var(--yellow)">${total}</strong></td><td class="cell-chips"><div class="cell-chips-inner">${bd||'<span style="color:var(--text3)">—</span>'}</div></td><td>${l.driver||'-'}</td></tr>`;
       }).join('')}</tbody></table></div>
     </div>`;
   openModal('shop-detail-modal');
@@ -1374,6 +1760,10 @@ function saveBardanaIssue(){
   const shopId=V('bi-shop'),date=V('bi-date'),qty=parseInt(V('bi-qty'))||0;
   if(!shopId||!date||qty<=0) return toast('Shop, date aur qty zaroor likhein!','e');
   const editId=V('bi-edit-id');
+  if(MMP_REQUIRE_AUTH){
+    if(editId){ if(!canEditEntity('bardana',editId)) return toast('Edit permission nahi','e'); }
+    else if(!can('add')) return toast('Add ki permission nahi','e');
+  }
   const rec={id:editId||uid(),shopId,type:'issue',qty,bardanaType:V('bi-btype'),date,remarks:V('bi-rem'),createdAt:editId?(db.bardana.find(b=>b.id===editId)||{}).createdAt:new Date().toISOString()};
   if(editId){ const idx=db.bardana.findIndex(b=>b.id===editId); if(idx>-1) db.bardana[idx]=rec; }
   else db.bardana.push(rec);
@@ -1384,6 +1774,11 @@ function saveBardanaIssue(){
 
 function saveBardanaReturn(){
   const shopId=V('br-shop'),date=V('br-date'),qty=parseInt(V('br-qty'))||0;
+  if(MMP_REQUIRE_AUTH){
+    const eid=V('br-edit-id');
+    if(eid){ if(!canEditEntity('bardana',eid)) return toast('Edit permission nahi','e'); }
+    else if(!can('add')) return toast('Add ki permission nahi','e');
+  }
   if(!shopId||!date||qty<=0) return toast('Shop, date aur qty zaroor likhein!','e');
   const net=getBardanaNetBalance(shopId);
   if(net>=0&&qty>net) return toast(`Company balance: max ${net} bags return`,'e');
@@ -1398,12 +1793,14 @@ function saveBardanaReturn(){
 }
 
 function deleteBardana(id){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   confirmDel('Is bardana entry ko delete karna chahte hain?',()=>{
     db.bardana=db.bardana.filter(b=>b.id!==id);
     saveDb(); renderAll(); toast('Delete ho gaya','i');
   });
 }
 function deleteBardanaBulk(){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   const ids=getBulkIds('bardana');
   if(!ids.length) return toast('Records tick karein','e');
   confirmDel(ids.length+' bardana records delete?',()=>{
@@ -1414,6 +1811,7 @@ function deleteBardanaBulk(){
 function prepNewBardanaIssue(){ clr('bi-edit-id'); setV('bi-date',today()); if(E('bi-hint'))E('bi-hint').style.display='none'; if(E('bardana-issue-modal-title'))E('bardana-issue-modal-title').textContent='🛍️ Bardana Issue (Dena)';}
 function prepNewBardanaReturn(){ clr('br-edit-id'); setV('br-date',today()); if(E('br-hint'))E('br-hint').style.display='none'; if(E('bardana-return-modal-title'))E('bardana-return-modal-title').textContent='↩️ Bardana Return (Wapas)';}
 function editBardanaIssue(id){
+  if(MMP_REQUIRE_AUTH && !canEditEntity('bardana',id)) return toast('Edit permission nahi — ✉ request karein','e');
   const b=db.bardana.find(x=>x.id===id&&x.type==='issue'); if(!b) return;
   if(E('bi-hint')) E('bi-hint').style.display='none';
   setV('bi-edit-id',id); setV('bi-shop',b.shopId); setV('bi-date',b.date); setV('bi-qty',b.qty); setV('bi-btype',b.bardanaType||'50kg'); setV('bi-rem',b.remarks||'');
@@ -1421,6 +1819,7 @@ function editBardanaIssue(id){
   updateBardanaHint(); openModal('bardana-issue-modal');
 }
 function editBardanaReturn(id){
+  if(MMP_REQUIRE_AUTH && !canEditEntity('bardana',id)) return toast('Edit permission nahi — ✉ request karein','e');
   const b=db.bardana.find(x=>x.id===id&&x.type==='return'); if(!b) return;
   if(E('br-hint')) E('br-hint').style.display='none';
   setV('br-edit-id',id); setV('br-shop',b.shopId); setV('br-date',b.date); setV('br-qty',b.qty); setV('br-reason',b.reason||'unfilled'); setV('br-rem',b.remarks||'');
@@ -1429,9 +1828,14 @@ function editBardanaReturn(id){
 }
 function saveBardanaJournal(){
   const fromId=V('bj-from'),toId=V('bj-to'),qty=parseInt(V('bj-qty'),10)||0,date=V('bj-date');
+  const eid=V('bj-edit-id');
+  if(MMP_REQUIRE_AUTH){
+    if(eid){ if(!canEditEntity('bjournal',eid)) return toast('Edit permission nahi','e'); }
+    else if(!can('add')) return toast('Add ki permission nahi','e');
+  }
   if(!fromId||!toId||fromId===toId) return toast('Source aur destination alag shops chunein!','e');
   if(!date||qty<=0) return toast('Date aur qty zaroori!','e');
-  const editId=V('bj-edit-id');
+  const editId=eid;
   const rec={id:editId||uid(),fromShopId:fromId,toShopId:toId,qty,date,remarks:V('bj-rem')||'',createdAt:editId?(db.bardanaJournal.find(j=>j.id===editId)||{}).createdAt:new Date().toISOString()};
   if(editId){ const ix=db.bardanaJournal.findIndex(j=>j.id===editId); if(ix>-1) db.bardanaJournal[ix]=rec; }
   else db.bardanaJournal.push(rec);
@@ -1441,15 +1845,18 @@ function saveBardanaJournal(){
 }
 function prepNewBardanaJournal(){ clr('bj-edit-id'); setV('bj-date',today()); if(E('bardana-journal-modal-title'))E('bardana-journal-modal-title').textContent='📒 Bardana Journal (Party → Party)';}
 function editBardanaJournal(id){
+  if(MMP_REQUIRE_AUTH && !canEditEntity('bjournal',id)) return toast('Edit permission nahi — ✉ request karein','e');
   const j=db.bardanaJournal.find(x=>x.id===id); if(!j) return;
   setV('bj-edit-id',id); setV('bj-from',j.fromShopId); setV('bj-to',j.toShopId); setV('bj-date',j.date); setV('bj-qty',j.qty); setV('bj-rem',j.remarks||'');
   if(E('bardana-journal-modal-title'))E('bardana-journal-modal-title').textContent='✏️ Journal Edit';
   openModal('bardana-journal-modal');
 }
 function deleteBardanaJournal(id){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   confirmDel('Journal entry delete?',()=>{ db.bardanaJournal=db.bardanaJournal.filter(j=>j.id!==id); saveDb(); renderAll(); toast('Journal delete','i'); });
 }
 function deleteBardanaJournalBulk(){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   const ids=getBulkIds('bjournal');
   if(!ids.length) return toast('Journal tick karein','e');
   confirmDel(ids.length+' journal entries delete?',()=>{
@@ -1479,11 +1886,15 @@ function prepNewPurchaseModal(){
 }
 function savePurchase(){
   const shopId=V('p-shop'),date=V('p-date'),rate=parseFloat(V('p-rate'))||0,bags=parseInt(V('p-bags'))||0;
+  const editId=V('p-edit-id');
+  if(MMP_REQUIRE_AUTH){
+    if(editId){ if(!canEditEntity('purchase',editId)) return toast('Is lot ko edit ki permission nahi','e'); }
+    else if(!can('add')) return toast('Naya purchase add ki permission nahi','e');
+  }
   if(!shopId) return toast('Shop chunein!','e');
   if(!date) return toast('Date likhein!','e');
   if(rate<=0) return toast('Rate likhein!','e');
   if(bags<=0) return toast('Bags likhein!','e');
-  const editId=V('p-edit-id');
   const lotNo=V('p-lot-no').trim()||('LOT-'+Date.now().toString(36).toUpperCase());
   const billType=V('p-bill')==='without_bill'?'without_bill':'with_bill';
   const rec={id:editId||uid(),shopId,date,rate,bags,wt:parseFloat(V('p-wt'))||50,grade:V('p-grade'),moisture:V('p-moisture'),lotNo,remarks:V('p-rem'),billType,createdAt:editId?(db.purchases.find(p=>p.id===editId)||{}).createdAt:new Date().toISOString()};
@@ -1496,6 +1907,7 @@ function savePurchase(){
 }
 
 function editPurchase(id){
+  if(MMP_REQUIRE_AUTH && !canEditEntity('purchase',id)) return toast('Edit permission nahi — ✉ request karein','e');
   const p=db.purchases.find(x=>x.id===id); if(!p) return;
   refreshGradeSelects();
   setV('p-edit-id',id);setV('p-shop',p.shopId);setV('p-date',p.date);setV('p-rate',p.rate);setV('p-bags',p.bags);setV('p-wt',p.wt||50);setV('p-grade',p.grade);setV('p-moisture',p.moisture);setV('p-lot-no',p.lotNo);setV('p-rem',p.remarks);setV('p-bill',p.billType||'with_bill');
@@ -1513,6 +1925,7 @@ function stripPurchaseFromAllLiftings(purchaseId){
   db.liftings=db.liftings.filter(l=>liftingParties(l).length>0);
 }
 function deletePurchase(id){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   confirmDel('Purchase lot delete karein? (Lifting records mein se bhi hat jayega)',()=>{
     stripPurchaseFromAllLiftings(id);
     db.purchases=db.purchases.filter(p=>p.id!==id);
@@ -1520,6 +1933,7 @@ function deletePurchase(id){
   });
 }
 function deletePurchaseBulk(){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   const ids=getBulkIds('purchase');
   if(!ids.length) return toast('Lots tick karein','e');
   confirmDel(ids.length+' purchase lots delete? Lifting se bhi hat jayega.',()=>{
@@ -1533,6 +1947,7 @@ function deletePurchaseBulk(){
 let liftingPartiesState=[];
 
 function openLiftingModalNew(){
+  if(MMP_REQUIRE_AUTH && !can('add')) return toast('Nayi lifting add ki permission nahi','e');
   clr('l-edit-id');
   liftingPartiesState=[];
   setV('l-date',today());
@@ -1652,6 +2067,11 @@ function updateLiftingSummaryMeta(){
 }
 
 function saveLifting(){
+  const editIdPre=V('l-edit-id')||'';
+  if(MMP_REQUIRE_AUTH){
+    if(editIdPre){ if(!canEditEntity('lifting',editIdPre)) return toast('Is lifting ko edit ki permission nahi','e'); }
+    else if(!can('add')) return toast('Nayi lifting ki permission nahi','e');
+  }
   const date=V('l-date'),gatepass=V('l-gp').trim(),vehicle=V('l-veh').trim();
   if(!date) return toast('Date likhein!','e');
   if(!gatepass) return toast('Gate Pass No. likhein!','e');
@@ -1693,6 +2113,7 @@ function saveLifting(){
 }
 
 function editLifting(id){
+  if(MMP_REQUIRE_AUTH && !canEditEntity('lifting',id)) return toast('Edit permission nahi — ✉ request karein','e');
   const l=db.liftings.find(x=>x.id===id); if(!l) return;
   setV('l-edit-id',id);
   setV('l-date',l.date);setV('l-gp',l.gatepass);setV('l-veh',l.vehicle);setV('l-driver',l.driver||'');setV('l-trans',l.transporter||'');setV('l-dest',l.destination||'');setV('l-rem',l.remarks||'');
@@ -1703,12 +2124,14 @@ function editLifting(id){
 }
 
 function deleteLifting(id){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   confirmDel('Is lifting entry ko delete karna chahte hain?',()=>{
     db.liftings=db.liftings.filter(l=>l.id!==id);
     saveDb(); renderAll(); toast('Delete ho gaya','i');
   });
 }
 function deleteLiftingBulk(){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Delete ki permission nahi','e');
   const ids=getBulkIds('lifting');
   if(!ids.length) return toast('Lifting tick karein','e');
   confirmDel(ids.length+' lifting records delete?',()=>{
@@ -1814,10 +2237,7 @@ function renderShops(){
           <div class="shop-meta">${s.owner?'👤 '+s.owner:''} ${s.phone?'📞 '+s.phone:''}</div>
           ${s.location?`<div class="shop-meta">📍 ${s.location}</div>`:''}
         </div>
-        <div style="display:flex;gap:3px">
-          <button class="ab2 e" title="Edit" onclick="event.stopPropagation();editShop('${s.id}')">✏</button>
-          <button class="ab2 d" title="Delete" onclick="event.stopPropagation();deleteShop('${s.id}')">🗑</button>
-        </div>
+        <div style="display:flex;gap:3px" onclick="event.stopPropagation()">${mmpRowEditDel('shop',s.id,"editShop('"+s.id+"')","deleteShop('"+s.id+"')")}</div>
       </div>
       <div class="kpi-row">
         <div class="kpi-item"><div class="kpi-v" style="color:var(--blue)">${fmt(s.totalPurchased)}</div><div class="kpi-l">Kharida</div></div>
@@ -1837,9 +2257,8 @@ function renderShops(){
     <td><strong style="color:${s.pendingBags>0?'var(--orange)':'var(--green)'}">${fmt(s.pendingBags)}</strong></td>
     <td><span class="${s.bardanaOut>0?'badge badge-red':'badge badge-gray'}">${s.bardanaOut>0?'⚠️ '+s.bardanaOut:'Clear'}</span></td>
     <td class="ab">
-      <button class="ab2 v" title="View" onclick="viewShopDetail('${s.id}')">👁</button>
-      <button class="ab2 e" title="Edit" onclick="editShop('${s.id}')">✏</button>
-      <button class="ab2 d" title="Delete" onclick="deleteShop('${s.id}')">🗑</button>
+      <button type="button" class="ab2 v" title="View" onclick="viewShopDetail('${s.id}')">👁</button>
+      ${mmpRowEditDel('shop',s.id,"editShop('"+s.id+"')","deleteShop('"+s.id+"')")}
     </td>
   </tr>`).join(''):'<tr><td colspan="10" class="empty"><div class="ei">🏪</div><p>Koi shop nahi.</p></td></tr>';
   renderPagination('shops-pbs','shops-pi',data.length,pg,ps,p=>{pages.shops=p;renderShops();});
@@ -1883,6 +2302,7 @@ function renderBardanaLedgerReport(){
     </tbody>${rowObjs.length?`<tfoot><tr style="background:var(--s2);font-weight:700;border-top:2px solid var(--border)"><td colspan="3">Kul (ledger total)</td><td style="color:var(--green)">${fmt(totIn)}</td><td style="color:var(--red)">${fmt(totOut)}</td><td>${fmtSigned(footBal)}</td></tr></tfoot>`:''}</table></div>`;
 }
 function exportBardanaLedger(format){
+  if(MMP_REQUIRE_AUTH && !can('export')) return toast('Export ki permission nahi','e');
   const shopId=V('bardana-ledger-shop');
   if(!shopId) return toast('Party select karke ledger dikhao','e');
   const rowObjs=buildBardanaLedgerRows(shopId);
@@ -1990,10 +2410,7 @@ function renderBardanaTable(){
     <td>${b.reason||'-'}</td>
     <td style="color:var(--text3)">${b.remarks||'-'}</td>
     <td>${statusBadgeBardana(b._st)}</td>
-    <td class="ab">
-      <button class="ab2 e" title="Edit" onclick="${b.type==='issue'?'editBardanaIssue':'editBardanaReturn'}('${b.id}')">✏</button>
-      <button class="ab2 d" title="Delete" onclick="deleteBardana('${b.id}')">🗑</button>
-    </td>
+    <td class="ab">${mmpRowEditDel('bardana',b.id,(b.type==='issue'?"editBardanaIssue('"+b.id+"')":"editBardanaReturn('"+b.id+"'")),"deleteBardana('"+b.id+"')")}</td>
   </tr>`).join(''):'<tr><td colspan="10" class="empty"><div class="ei">🛍️</div><p>Koi bardana record nahi.</p></td></tr>';
   renderPagination('bardana-pbs','bardana-pi',data.length,pg,ps,p=>{pages.bardana=p;renderBardanaTable();});
   updateBulkUi('bardana');
@@ -2005,7 +2422,7 @@ function renderBardanaTable(){
       <td><input type="checkbox" class="bulk-cb-bjournal" value="${j.id}" onchange="updateBulkUi('bjournal')"></td>
       <td>${j.date}</td><td><strong>${escHtml(getShopName(j.fromShopId))}</strong></td><td><strong>${escHtml(getShopName(j.toShopId))}</strong></td>
       <td style="font-weight:700">${fmt(j.qty)}</td><td style="color:var(--text3)">${escHtml(j.remarks||'—')}</td>
-      <td class="ab"><button class="ab2 e" onclick="editBardanaJournal('${j.id}')">✏</button><button class="ab2 d" onclick="deleteBardanaJournal('${j.id}')">🗑</button></td>
+      <td class="ab">${mmpRowEditDel('bjournal',j.id,"editBardanaJournal('"+j.id+"')","deleteBardanaJournal('"+j.id+"')")}</td>
     </tr>`).join(''):'<tr><td colspan="7" class="empty">Koi journal entry nahi</td></tr>';
     updateBulkUi('bjournal');
   }
@@ -2064,8 +2481,7 @@ function renderPurchaseTable(){
     <td style="color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:11px">${rupee(Math.round(p.bags*p.rate*(p.wt||50)/100))}</td>
     <td style="color:var(--text3);max-width:120px;overflow:hidden;text-overflow:ellipsis">${escHtml(p.remarks||'-')}</td>
     <td class="ab">
-      <button class="ab2 e" onclick="editPurchase('${p.id}')">✏</button>
-      <button class="ab2 d" onclick="deletePurchase('${p.id}')">🗑</button>
+      ${mmpRowEditDel('purchase',p.id,"editPurchase('"+p.id+"')","deletePurchase('"+p.id+"')")}
     </td>
   </tr>`).join(''):'<tr><td colspan="15" class="empty"><div class="ei">📦</div><p>Koi purchase nahi.</p></td></tr>';
   renderPagination('purchase-pbs','purchase-pi',data.length,pg,ps,p=>{pages.purchase=p;renderPurchaseTable();});
@@ -2104,15 +2520,40 @@ function renderLiftingTable(){
       <td><span class="badge badge-green">📋 ${escHtml(l.gatepass)}</span></td>
       <td><span class="badge badge-blue">🚛 ${escHtml(l.vehicle)}</span></td>
       <td><strong style="color:var(--orange);font-family:'Rajdhani',sans-serif;font-size:15px">${fmt(l.totalBags)}</strong></td>
-      <td style="max-width:200px">${breakdown}</td>
+      <td class="cell-chips"><div class="cell-chips-inner">${breakdown||'<span style="color:var(--text3);font-size:11px">—</span>'}</div></td>
       <td>${escHtml(l.driver||'-')}</td><td>${escHtml(l.transporter||'-')}</td><td>${escHtml(l.destination||'-')}</td>
       <td style="color:var(--text3)">${escHtml(l.remarks||'-')}</td>
       <td>${statusBadgeLifting(l._st)}</td>
-      <td class="ab"><button class="ab2 e" onclick="editLifting('${l.id}')">✏</button><button class="ab2 d" onclick="deleteLifting('${l.id}')">🗑</button></td>
+      <td class="ab">${mmpRowEditDel('lifting',l.id,"editLifting('"+l.id+"')","deleteLifting('"+l.id+"')")}</td>
     </tr>`;
   }).join(''):'<tr><td colspan="13" class="empty"><div class="ei">🚛</div><p>Koi lifting nahi.</p></td></tr>';
   renderPagination('lifting-pbs','lifting-pi',data.length,pg,ps,p=>{pages.lifting=p;renderLiftingTable();});
   updateBulkUi('lifting');
+}
+
+// ── RATE DISTRIBUTION CHART (dashboard + expanded modal) ──
+function buildRateDistributionChartHtml(){
+  const rateGroups={};
+  db.purchases.forEach(p=>{
+    const key=rupee(p.rate)+'/Qtl';
+    if(!rateGroups[key]) rateGroups[key]={bags:0,pending:0};
+    rateGroups[key].bags+=p.bags;
+    rateGroups[key].pending+=p.bags-getLiftedFromLot(p.id);
+  });
+  const rateData=Object.entries(rateGroups).sort((a,b)=>b[1].pending-a[1].pending);
+  const maxR=Math.max(...rateData.map(x=>x[1].pending),1);
+  const rcolors=['#d97706','#ea580c','#dc2626','#9a3412','#92400e','#7c3aed','#0f766e','#1a5fc8'];
+  return rateData.length?rateData.map(([rate,{pending}],i)=>`
+    <div class="chart-bar-row">
+      <div class="chart-bar-lbl" title="${escHtml(rate)}">${rate}</div>
+      <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(pending/maxR*100)}%;background:${rcolors[i%rcolors.length]}"><span class="chart-bar-val">${fmt(pending)}</span></div></div>
+    </div>`).join(''):'<div class="empty" style="padding:20px"><div class="ei">💰</div><p>Data nahi</p></div>';
+}
+function openRateChartExpanded(){
+  const body=E('rate-chart-modal-body');
+  if(!body) return;
+  body.innerHTML=buildRateDistributionChartHtml();
+  openModal('rate-chart-modal');
 }
 
 // ── RENDER DASHBOARD ──
@@ -2158,23 +2599,9 @@ function renderDashboard(){
         <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(x.pending/maxP*100)}%;background:${colors[i%colors.length]}"><span class="chart-bar-val">${fmt(x.pending)}</span></div></div>
       </div>`).join(''):'<div class="empty" style="padding:20px"><div class="ei">✅</div><p>Koi pending nahi</p></div>';
   }
-  // Rate chart
+  // Rate chart (scroll box + shared builder for "Bada view" modal)
   const rateChart=E('dash-chart-rates');
-  const rateGroups={};
-  db.purchases.forEach(p=>{
-    const key=rupee(p.rate)+'/Qtl';
-    if(!rateGroups[key]) rateGroups[key]={bags:0,pending:0};
-    rateGroups[key].bags+=p.bags;
-    rateGroups[key].pending+=p.bags-getLiftedFromLot(p.id);
-  });
-  const rateData=Object.entries(rateGroups).sort((a,b)=>b[1].pending-a[1].pending);
-  const maxR=Math.max(...rateData.map(x=>x[1].pending),1);
-  const rcolors=['#d97706','#ea580c','#dc2626','#9a3412','#92400e','#7c3aed','#0f766e','#1a5fc8'];
-  rateChart.innerHTML=rateData.length?rateData.map(([rate,{pending}],i)=>`
-    <div class="chart-bar-row">
-      <div class="chart-bar-lbl">${rate}</div>
-      <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(pending/maxR*100)}%;background:${rcolors[i%rcolors.length]}"><span class="chart-bar-val">${fmt(pending)}</span></div></div>
-    </div>`).join(''):'<div class="empty" style="padding:20px"><div class="ei">💰</div><p>Data nahi</p></div>';
+  if(rateChart) rateChart.innerHTML=buildRateDistributionChartHtml();
   // Shop summary table (sortable headers)
   let shopRows=db.shops.map(s=>{
     const tp=getShopPurchased(s.id),tl=getShopLifted(s.id),pend=tp-tl;
@@ -2207,7 +2634,7 @@ function renderDashboard(){
       <td style="color:var(--blue);font-weight:700">${fmt(tp)}</td>
       <td style="color:var(--green);font-weight:700">${fmt(tl)}</td>
       <td><strong style="color:${pend>0?'var(--orange)':'var(--green)'};font-size:15px">${fmt(pend)}</strong></td>
-      <td style="max-width:180px">${rateBreak||'<span style="color:var(--text3)">—</span>'}</td>
+      <td class="cell-chips"><div class="cell-chips-inner">${rateBreak||'<span style="color:var(--text3)">—</span>'}</div></td>
       <td style="color:var(--blue)">${fmt(bi)}</td>
       <td><span class="${bo>0?'badge badge-amber':'badge badge-gray'}">${bo>0?'⚠️ '+bo:'Clear'}</span></td>
       <td>${bown>0?`<span class="badge badge-orange">🏷 ${bown} apna</span>`:'—'}</td>
@@ -2416,9 +2843,9 @@ function renderShopWiseReport(purchases,liftings,fShop){
           const party=liftingParties(l).find(p=>p.shopId===shop.id);
           const lots=party?party.lots:(l.lots||[]);
           const total=lots.reduce((s,x)=>s+x.bags,0);
-          const detail=lots.map(x=>{const p=db.purchases.find(y=>y.id===x.purchaseId);return p?`${rupee(p.rate)}: ${x.bags}bg`:''}).filter(Boolean).join(', ');
+          const detail=lots.map(x=>{const p=db.purchases.find(y=>y.id===x.purchaseId);return p?`<span class="lot-chip">${rupee(p.rate)}: ${x.bags}bg</span>`:''}).filter(Boolean).join('');
           const multi=liftingParties(l).length>1?' <small style="color:var(--text3)">(multi-party GP)</small>':'';
-          return `<tr><td>${l.date}</td><td><span class="badge badge-green">${l.gatepass}</span>${multi}</td><td><span class="badge badge-blue">${l.vehicle}</span></td><td style="font-weight:700;color:var(--orange)">${total}</td><td style="font-size:11px">${detail}</td><td>${l.driver||'-'}</td><td>${l.destination||'-'}</td></tr>`;
+          return `<tr><td>${l.date}</td><td><span class="badge badge-green">${l.gatepass}</span>${multi}</td><td><span class="badge badge-blue">${l.vehicle}</span></td><td style="font-weight:700;color:var(--orange)">${total}</td><td class="cell-chips"><div class="cell-chips-inner">${detail||'—'}</div></td><td>${l.driver||'-'}</td><td>${l.destination||'-'}</td></tr>`;
         }).join('')}<tr style="background:#f0f4fc;font-weight:700"><td colspan="3">TOTAL LIFTED (is shop)</td><td style="color:var(--green)">${fmt(totalLifted)}</td><td colspan="3"></td></tr></tbody></table>
       </div>
     </div>`;
@@ -2636,9 +3063,9 @@ function renderLiftingReport(liftings){
     return arr.map(l=>{
       const parties=liftingParties(l);
       const total=parties.reduce((s,p)=>s+p.lots.reduce((a,x)=>a+x.bags,0),0);
-      const bd=parties.flatMap(p=>p.lots.map(x=>{const pur=db.purchases.find(y=>y.id===x.purchaseId);return pur?`${getShopName(p.shopId)}: ${rupee(pur.rate)} ${x.bags}bg`:''})).filter(Boolean).join(' | ');
+      const bd=parties.flatMap(p=>p.lots.map(x=>{const pur=db.purchases.find(y=>y.id===x.purchaseId);if(!pur)return'';const lbl=parties.length>1?`${escHtml(getShopName(p.shopId))} · `:'';return `<span class="lot-chip" title="${escHtml(getShopName(p.shopId))}">${lbl}${rupee(pur.rate)}: ${x.bags}bg</span>`;})).filter(Boolean).join('');
       const snames=parties.map(p=>getShopName(p.shopId)).join(' + ');
-      return `<tr><td>${l.date}</td><td style="color:var(--blue);max-width:140px;white-space:normal">${snames}</td><td><span class="badge badge-green">${l.gatepass}</span></td><td><span class="badge badge-blue">${l.vehicle}</span></td><td style="font-weight:700;color:var(--orange)">${total}</td><td style="font-size:11px">${bd}</td><td>${l.driver||'-'}</td><td>${l.destination||'-'}</td></tr>`;
+      return `<tr><td>${l.date}</td><td style="color:var(--blue);max-width:140px;white-space:normal">${snames}</td><td><span class="badge badge-green">${l.gatepass}</span></td><td><span class="badge badge-blue">${l.vehicle}</span></td><td style="font-weight:700;color:var(--orange)">${total}</td><td class="cell-chips"><div class="cell-chips-inner">${bd||'—'}</div></td><td>${l.driver||'-'}</td><td>${l.destination||'-'}</td></tr>`;
     }).join('');
   })()}</tbody></table></div></div>`;
 }
@@ -2818,11 +3245,18 @@ const importTemplates={
 };
 
 function openImport(section){
+  if(MMP_REQUIRE_AUTH && !can('import')) return toast('CSV import ki permission nahi','e');
   importSection=section; importData=[]; E('import-preview-wrap').style.display='none';
   E('import-confirm-btn').style.display='none'; E('import-file-inp').value='';
   const t=importTemplates[section];
   E('import-modal-title').textContent='📥 Import '+section.charAt(0).toUpperCase()+section.slice(1);
-  E('import-instructions').innerHTML=`<strong>Required Columns:</strong> ${t.headers.join(', ')}<br><small style="color:var(--text3)">⚠️ <strong>shop_name</strong> app ke shop se <strong>exact</strong> match hona chahiye. Date column: <strong>date</strong> ya <strong>purchase_date</strong> / <strong>bill_date</strong>. Formats: <strong>YYYY-MM-DD</strong>, <strong>YYYY/MM/DD</strong>, <strong>DD/MM/YYYY</strong>, <strong>MM/DD</strong> (jab din &gt;12), <strong>29-Mar-2026</strong>, Excel serial <strong>46110</strong>.<br><strong>Test CSV (Downloads):</strong> <code>mandi_sample_shops.csv</code> → pehle Shops import; phir <code>mandi_sample_purchase_dates.csv</code> ya <code>mandi_sample_purchase_purchase_date_column.csv</code>.</small>`;
+  const shopHelp=section==='purchase'
+    ? '✅ <strong>shop_name</strong> pehle se maujood shop se <strong>match</strong> ho jayega; agar party app mein <strong>nahi</strong> hai to <strong>naya shop khud ban jayega</strong> (auto).'
+    : '⚠️ <strong>shop_name</strong> app ke shop se <strong>exact</strong> match hona chahiye.';
+  const sampleHint=section==='purchase'
+    ? '<code>mandi_sample_purchase_dates.csv</code> — ab pehle shops import karna zaroori nahi (nayi party auto ban sakti hai).'
+    : '<code>mandi_sample_shops.csv</code> → pehle Shops import; phir <code>mandi_sample_purchase_dates.csv</code>.';
+  E('import-instructions').innerHTML=`<strong>Required Columns:</strong> ${t.headers.join(', ')}<br><small style="color:var(--text3)">${shopHelp} Date column: <strong>date</strong> ya <strong>purchase_date</strong> / <strong>bill_date</strong>. Formats: <strong>YYYY-MM-DD</strong>, <strong>YYYY/MM/DD</strong>, <strong>DD/MM/YYYY</strong>, <strong>MM/DD</strong> (jab din &gt;12), <strong>29-Mar-2026</strong>, Excel serial <strong>46110</strong>.<br><strong>Sample:</strong> ${sampleHint}</small>`;
   openModal('import-modal');
 }
 
@@ -2873,9 +3307,10 @@ function handleImportFile(ev){
 }
 
 function doImport(){
+  if(MMP_REQUIRE_AUTH && !can('import')) return toast('Import ki permission nahi','e');
   if(!importData.length) return toast('Koi data nahi!','e');
   const findShop=name=>db.shops.find(s=>s.name.toLowerCase().trim()===name.toLowerCase().trim());
-  let added=0, skipped=0, errors=[];
+  let added=0, skipped=0, errors=[], shopsAutoCreated=0;
   if(importSection==='shops'){
     importData.forEach((r,i)=>{
       if(!r.name){ skipped++; return; }
@@ -2893,7 +3328,14 @@ function doImport(){
     });
   } else if(importSection==='purchase'){
     importData.forEach((r,i)=>{
-      const shop=findShop(r.shop_name); if(!shop){ errors.push(`Row ${i+2}: Shop "${r.shop_name}" nahi mili`); skipped++; return; }
+      const nameRaw=stripImportStr(r.shop_name||'');
+      if(!nameRaw){ errors.push(`Row ${i+2}: shop_name khali hai`); skipped++; return; }
+      let shop=findShop(nameRaw);
+      if(!shop){
+        shop={id:uid(),name:nameRaw,owner:'',phone:'',location:'',note:'Auto (purchase CSV import)',createdAt:new Date().toISOString()};
+        db.shops.push(shop);
+        shopsAutoCreated++;
+      }
       const d=importRowGetDate(r);
       if(!d||!r.rate||!r.bags){ skipped++; return; }
       const bt=(r.bill_type||'with_bill').toLowerCase().replace(/\s/g,'_');
@@ -2920,6 +3362,7 @@ function doImport(){
   }
   saveDb(); populateDropdowns(); renderAll(); closeModal('import-modal');
   let msg=`✅ ${added} records import ho gaye!`;
+  if(shopsAutoCreated) msg+=` (${shopsAutoCreated} naye shop auto-ban gaye.)`;
   if(skipped) msg+=` ${skipped} skipped.`;
   toast(msg);
   if(errors.length) setTimeout(()=>alert('Import Issues:\n'+errors.slice(0,10).join('\n')),500);
@@ -3050,6 +3493,7 @@ function buildReportExportFooterRows(maxCols){
 }
 
 function exportFiltered(section, format){
+  if(MMP_REQUIRE_AUTH && !can('export')) return toast('Export ki permission nahi','e');
   const data=getFilteredData(section);
   const cols=exportCols[section];
   const labels=cols.map(c=>exportColLabels[c]||c);
@@ -3104,6 +3548,7 @@ function getReportExportMatrix(){
   return {title:titleMap[type]||type,matrix:tablesToMatrix(html),rawHtml:html};
 }
 function exportCurrentReport(format){
+  if(MMP_REQUIRE_AUTH && !can('export')) return toast('Export ki permission nahi','e');
   renderCurrentReport();
   const {title,matrix,rawHtml}=getReportExportMatrix();
   const tmp=document.createElement('div'); tmp.innerHTML=rawHtml||'';
@@ -3143,23 +3588,27 @@ function loadSettings(){
   return s;
 }
 function saveSettings(){
+  if(MMP_REQUIRE_AUTH && !can('edit')) return toast('Settings save ki permission nahi','e');
   const gradeLines=V('s-grades').split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
   db.settings={company:V('s-company'),address:V('s-address'),phone:V('s-phone'),gstin:V('s-gstin'),defWt:V('s-def-wt'),defBtype:V('s-def-btype'),perPage:V('s-per-page'),grades:gradeLines.length?gradeLines:['A','B','C','Mixed']};
   saveDb(); refreshGradeSelects(); toast('Settings saved ✅');
 }
 
 function exportAllData(){
+  if(MMP_REQUIRE_AUTH && !can('export')) return toast('Export ki permission nahi','e');
   const a=document.createElement('a');
   a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(db,null,2));
   a.download='mandi_maize_backup_'+today()+'.json'; a.click(); toast('Backup download ho gaya ✅');
 }
 function importBackup(ev){
+  if(MMP_REQUIRE_AUTH && !can('import')) return toast('Backup restore ki permission nahi','e');
   const file=ev.target.files[0]; if(!file) return;
   const r=new FileReader();
   r.onload=e=>{try{const d=JSON.parse(e.target.result);if(!d.shops)throw new Error('Invalid');db=d;ensureDbShape();saveDb();loadSettings();populateDropdowns();renderAll();toast('Backup restore ho gaya ✅');}catch(err){toast('Invalid backup file!','e');}};
   r.readAsText(file);
 }
 function clearAllData(){
+  if(MMP_REQUIRE_AUTH && !can('delete')) return toast('Sab data clear ki permission nahi','e');
   if(!confirm('⚠️ SAARA DATA DELETE HO JAYEGA! Aap BILKUL sure hain?')) return;
   if(!confirm('Last chance! Ek baar delete hua to wapas nahi aayega. Continue?')) return;
   db={shops:[],bardana:[],bardanaJournal:[],purchases:[],liftings:[],settings:db.settings};
@@ -3184,15 +3633,48 @@ function renderAll(){
   if(currentTab==='reports') renderCurrentReport();
 }
 
-// ── INIT ──
-loadDb();
-const t=today();
-['bi-date','br-date','p-date','l-date','bj-date'].forEach(id=>{const el=E(id);if(el)el.value=t;});
-E('h-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-loadSettings(); populateDropdowns(); renderAll();
-initFirebaseSync();
+// ── INIT (login optional) ──
+function mmpRunAfterDataLoad(){
+  const t=today();
+  ['bi-date','br-date','p-date','l-date','bj-date'].forEach(id=>{const el=E(id);if(el)el.value=t;});
+  if(E('h-date')) E('h-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  loadSettings(); populateDropdowns(); renderAll();
+  initFirebaseSync();
+  mmpApplyStaticButtonVisibility();
+}
+if(!MMP_REQUIRE_AUTH){
+  mmpEnsureFirebaseApp();
+  document.body.classList.add('mmp-logged-in');
+  if(E('auth-gate')) E('auth-gate').classList.remove('open');
+  mmpUser=null;
+  mmpProfile={role:'admin',perms:{view:true,add:true,edit:true,delete:true,export:true,import:true}};
+  mmpRunAfterDataLoad();
+}else{
+  mmpEnsureFirebaseApp();
+  firebase.auth().onAuthStateChanged(async user=>{
+    if(!user){
+      document.body.classList.remove('mmp-logged-in');
+      if(E('auth-gate')) E('auth-gate').classList.add('open');
+      mmpShowAuthEnvHints();
+      if(mmpGrantsUnsub){ try{mmpGrantsUnsub();}catch(e){} mmpGrantsUnsub=null; }
+      mmpUser=null;
+      return;
+    }
+    if(E('auth-gate')) E('auth-gate').classList.remove('open');
+    document.body.classList.add('mmp-logged-in');
+    mmpUser=user;
+    if(E('mmp-header-user')) E('mmp-header-user').textContent=user.email||user.uid;
+    try{
+      await ensureMmpUserProfile(user);
+      mmpAttachGrantsListener(user.uid);
+    }catch(e){ toast('User profile error: '+((e&&e.message)||e),'e'); }
+    loadDb();
+    mmpRunAfterDataLoad();
+    if(currentTab==='settings' && mmpIsAdmin()) renderMmpAdminPanel();
+  });
+}
 // Auto-refresh header every minute
-setInterval(()=>{ renderDashboard(); },60000);
+setInterval(()=>{ if(document.body.classList.contains('mmp-logged-in')) renderDashboard(); },60000);
 </script>
 </body>
 </html>
