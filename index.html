@@ -118,6 +118,7 @@ td{padding:7px 10px;white-space:nowrap;color:var(--text);}
 .badge-purple{background:var(--pbg);color:var(--purple);border:1px solid var(--pb);}
 .badge-teal{background:var(--tbg);color:var(--teal);border:1px solid var(--tb);}
 .badge-gray{background:var(--s3);color:var(--text2);border:1px solid var(--border);}
+.rec-count{background:var(--bluebg);color:var(--blue);border:1px solid #c5d8f8;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;font-family:'Rajdhani',sans-serif;}
 .badge-orange{background:var(--obg);color:var(--orange);border:1px solid var(--ob);}
 /* ── PROGRESS ── */
 .prog{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;margin-top:4px;}
@@ -324,7 +325,10 @@ main{max-width:100%;padding:12px 10px;}
 <!-- ═══ TABS ═══ -->
 <div class="tabs-bar">
   <button class="tab active" onclick="goTab('dashboard',this)" id="tab-dashboard">📊 Dashboard</button>
-  <button class="tab" onclick="goTab('shops',this)" id="tab-shops">🏪 Shops / Parties</button>
+  <button class="tab" onclick="goTab('shops',this)" id="tab-shops">🧑‍🌾 Artiya</button>
+  <button class="tab" onclick="goTab('buyers',this)" id="tab-buyers">🤝 Party (Buyer)</button>
+  <button class="tab" onclick="goTab('godowns',this)" id="tab-godowns">🏬 Godown</button>
+  <button class="tab" onclick="goTab('stacks',this)" id="tab-stacks">🗄️ Stack</button>
   <button class="tab" onclick="goTab('bardana',this)" id="tab-bardana">🛍️ Bardana</button>
   <button class="tab" onclick="goTab('purchase',this)" id="tab-purchase">📦 Purchase</button>
   <button class="tab" onclick="goTab('lifting',this)" id="tab-lifting">🚛 Lifting</button>
@@ -333,6 +337,57 @@ main{max-width:100%;padding:12px 10px;}
 </div>
 
 <main>
+
+<!-- ════════════════════════════ PARTY (BUYER) ════════════════════════════ -->
+<div class="section" id="section-buyers">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div class="stl">🤝 Party / <span>Buyer (Jisko Sale karein)</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-blue" onclick="prepNewBuyerModal();openModal('buyer-modal')">＋ Naya Party</button>
+    </div>
+  </div>
+  <div class="tw">
+    <div class="th2"><div class="ttl">🤝 Party List</div><div class="rec-count" id="buyers-count">0</div></div>
+    <div class="tsc"><table>
+      <thead><tr><th>Party Naam</th><th>Owner</th><th>Mobile</th><th>Location</th><th>GSTIN</th><th>Action</th></tr></thead>
+      <tbody id="buyers-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ GODOWN ════════════════════════════ -->
+<div class="section" id="section-godowns">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div class="stl">🏬 Godown / <span>Warehouse</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-blue" onclick="prepNewGodownModal();openModal('godown-modal')">＋ Naya Godown</button>
+    </div>
+  </div>
+  <div class="tw">
+    <div class="th2"><div class="ttl">🏬 Godown List</div><div class="rec-count" id="godowns-count">0</div></div>
+    <div class="tsc"><table>
+      <thead><tr><th>Godown Naam</th><th>Jagah</th><th>Capacity (Bags)</th><th>Incharge</th><th>Stacks</th><th>Action</th></tr></thead>
+      <tbody id="godowns-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ STACK ════════════════════════════ -->
+<div class="section" id="section-stacks">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div class="stl">🗄️ Stack / <span>Thappi (Godown ke andar)</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-blue" onclick="prepNewStackModal();openModal('stack-modal')">＋ Naya Stack</button>
+    </div>
+  </div>
+  <div class="tw">
+    <div class="th2"><div class="ttl">🗄️ Stack List</div><div class="rec-count" id="stacks-count">0</div></div>
+    <div class="tsc"><table>
+      <thead><tr><th>Stack Naam / No.</th><th>Godown</th><th>Capacity (Bags)</th><th>Note</th><th>Action</th></tr></thead>
+      <tbody id="stacks-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
 
 <!-- ════════════════════════════ DASHBOARD ════════════════════════════ -->
 <div class="section active" id="section-dashboard">
@@ -386,12 +441,12 @@ main{max-width:100%;padding:12px 10px;}
 <!-- ════════════════════════════ SHOPS ════════════════════════════ -->
 <div class="section" id="section-shops">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-    <div class="stl">🏪 Shops / <span>Parties</span></div>
+    <div class="stl">🧑‍🌾 Artiya / <span>Aadhati</span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="openImport('shops')">📥 Import CSV</button>
       <button class="btn btn-green btn-sm" onclick="exportSection('shops','excel')">📊 Excel</button>
       <button class="btn btn-red btn-sm" onclick="exportSection('shops','pdf')">📄 PDF</button>
-      <button class="btn btn-blue" onclick="openModal('shop-modal')">＋ Naya Shop</button>
+      <button class="btn btn-blue" onclick="prepNewShopModal();openModal('shop-modal')">＋ Naya Artiya</button>
     </div>
   </div>
   <!-- Filter -->
@@ -732,11 +787,11 @@ main{max-width:100%;padding:12px 10px;}
 <!-- SHOP MODAL -->
 <div class="ov" id="shop-modal">
   <div class="modal-box modal-sm">
-    <div class="mh"><div class="mt" id="shop-modal-title">🏪 Naya Shop Add</div><button class="mx" onclick="closeModal('shop-modal')">✕</button></div>
+    <div class="mh"><div class="mt" id="shop-modal-title">🧑‍🌾 Naya Artiya Add</div><button class="mx" onclick="closeModal('shop-modal')">✕</button></div>
     <div class="mb">
       <input type="hidden" id="shop-edit-id">
       <div class="fgrid fg2">
-        <div class="fg2x"><div class="flbl">Shop / Party Naam *</div><input class="finp" id="s-name" placeholder="Jaise: Sharma Traders"></div>
+        <div class="fg2x"><div class="flbl">Artiya / Aadhati Naam *</div><input class="finp" id="s-name" placeholder="Jaise: Sharma Traders"></div>
         <div class="fg2x"><div class="flbl">Owner Naam</div><input class="finp" id="s-owner" placeholder="Malik ka naam"></div>
         <div class="fg2x"><div class="flbl">Mobile No.</div><input class="finp" id="s-phone2" placeholder="98xxxxxxxx" type="tel"></div>
         <div class="fg2x"><div class="flbl">Location / Gali</div><input class="finp" id="s-loc" placeholder="Mandi mein gali/no."></div>
@@ -744,6 +799,63 @@ main{max-width:100%;padding:12px 10px;}
       </div>
     </div>
     <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('shop-modal')">Cancel</button><button class="btn btn-blue" onclick="saveShop()">💾 Save</button></div></div>
+  </div>
+</div>
+
+<!-- PARTY (BUYER) MODAL -->
+<div class="ov" id="buyer-modal">
+  <div class="modal-box modal-sm">
+    <div class="mh"><div class="mt" id="buyer-modal-title">🤝 Naya Party Add</div><button class="mx" onclick="closeModal('buyer-modal')">✕</button></div>
+    <div class="mb">
+      <input type="hidden" id="buyer-edit-id">
+      <div class="fgrid fg2">
+        <div class="fg2x"><div class="flbl">Party Naam *</div><input class="finp" id="by-name" placeholder="Jaise: Venky Feeds"></div>
+        <div class="fg2x"><div class="flbl">Owner Naam</div><input class="finp" id="by-owner" placeholder="Malik ka naam"></div>
+        <div class="fg2x"><div class="flbl">Mobile No.</div><input class="finp" id="by-phone" placeholder="98xxxxxxxx" type="tel"></div>
+        <div class="fg2x"><div class="flbl">Location / Shehar</div><input class="finp" id="by-loc" placeholder="Sheher / pata"></div>
+        <div class="fg2x"><div class="flbl">GSTIN</div><input class="finp" id="by-gstin" placeholder="Optional"></div>
+        <div class="fg2x"><div class="flbl">Note</div><input class="finp" id="by-note" placeholder="Koi khaas baat"></div>
+      </div>
+    </div>
+    <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('buyer-modal')">Cancel</button><button class="btn btn-blue" onclick="saveBuyer()">💾 Save</button></div></div>
+  </div>
+</div>
+
+<!-- GODOWN MODAL -->
+<div class="ov" id="godown-modal">
+  <div class="modal-box modal-sm">
+    <div class="mh"><div class="mt" id="godown-modal-title">🏬 Naya Godown Add</div><button class="mx" onclick="closeModal('godown-modal')">✕</button></div>
+    <div class="mb">
+      <input type="hidden" id="godown-edit-id">
+      <div class="fgrid fg2">
+        <div class="fg2x"><div class="flbl">Godown Naam *</div><input class="finp" id="gd-name" placeholder="Jaise: Main Godown"></div>
+        <div class="fg2x"><div class="flbl">Jagah / Village</div><input class="finp" id="gd-place" placeholder="Location"></div>
+        <div class="fg2x"><div class="flbl">Capacity (Bags)</div><input class="finp" id="gd-cap" type="number" min="0" placeholder="Optional"></div>
+        <div class="fg2x"><div class="flbl">Incharge</div><input class="finp" id="gd-incharge" placeholder="Manager ka naam"></div>
+        <div class="fg2x" style="grid-column:1/-1"><div class="flbl">Note</div><input class="finp" id="gd-note" placeholder="Koi note"></div>
+      </div>
+    </div>
+    <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('godown-modal')">Cancel</button><button class="btn btn-blue" onclick="saveGodown()">💾 Save</button></div></div>
+  </div>
+</div>
+
+<!-- STACK MODAL -->
+<div class="ov" id="stack-modal">
+  <div class="modal-box modal-sm">
+    <div class="mh"><div class="mt" id="stack-modal-title">🗄️ Naya Stack Add</div><button class="mx" onclick="closeModal('stack-modal')">✕</button></div>
+    <div class="mb">
+      <input type="hidden" id="stack-edit-id">
+      <div style="background:var(--bluebg);border:1px solid #c5d8f8;border-radius:var(--r2);padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--blue2)">
+        📌 Stack godown ke andar ek thappi hai — pehle Godown banayein, phir uske andar Stack.
+      </div>
+      <div class="fgrid fg2">
+        <div class="fg2x"><div class="flbl">Godown *</div><select class="finp" id="st-godown"><option value="">-- Godown Chunein --</option></select></div>
+        <div class="fg2x"><div class="flbl">Stack Naam / No. *</div><input class="finp" id="st-name" placeholder="Jaise: Stack A-1"></div>
+        <div class="fg2x"><div class="flbl">Capacity (Bags)</div><input class="finp" id="st-cap" type="number" min="0" placeholder="Optional"></div>
+        <div class="fg2x"><div class="flbl">Note</div><input class="finp" id="st-note" placeholder="Koi note"></div>
+      </div>
+    </div>
+    <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('stack-modal')">Cancel</button><button class="btn btn-blue" onclick="saveStack()">💾 Save</button></div></div>
   </div>
 </div>
 
@@ -954,7 +1066,9 @@ main{max-width:100%;padding:12px 10px;}
 // settings: {company, address, phone, gstin, defWt, defBtype, perPage, grades:[]}
 // ═══════════════════════════════════════════════════════════════
 
-let db = { shops:[], bardana:[], bardanaJournal:[], purchases:[], liftings:[], settings:{} };
+// shops = ARTIYA / AADHATI (commission agent we BUY maize from)
+// buyers = PARTY we SELL to | godowns = our warehouses | stacks = thappi inside a godown
+let db = { shops:[], buyers:[], godowns:[], stacks:[], bardana:[], bardanaJournal:[], purchases:[], liftings:[], settings:{} };
 
 // ── FIREBASE (Realtime DB) — sirf is path pe; doosri app = alag path ──
 const FIREBASE_CONFIG = {
@@ -984,6 +1098,9 @@ function setFirebaseStatus(msg, isErr){
 function packDbForCloud(){
   return {
     shops: db.shops || [],
+    buyers: db.buyers || [],
+    godowns: db.godowns || [],
+    stacks: db.stacks || [],
     bardana: db.bardana || [],
     bardanaJournal: db.bardanaJournal || [],
     purchases: db.purchases || [],
@@ -997,6 +1114,9 @@ function applyRemoteToDb(val){
   if(!val || typeof val !== 'object') return false;
   db = {
     shops: Array.isArray(val.shops) ? val.shops : [],
+    buyers: Array.isArray(val.buyers) ? val.buyers : [],
+    godowns: Array.isArray(val.godowns) ? val.godowns : [],
+    stacks: Array.isArray(val.stacks) ? val.stacks : [],
     bardana: Array.isArray(val.bardana) ? val.bardana : [],
     bardanaJournal: Array.isArray(val.bardanaJournal) ? val.bardanaJournal : [],
     purchases: Array.isArray(val.purchases) ? val.purchases : [],
@@ -1087,6 +1207,9 @@ function initFirebaseSync(){
 
 // ── PERSISTENCE ──
 function ensureDbShape(){
+  if(!db.buyers) db.buyers=[];
+  if(!db.godowns) db.godowns=[];
+  if(!db.stacks) db.stacks=[];
   if(!db.bardanaJournal) db.bardanaJournal=[];
   if(!db.settings) db.settings={};
   if(!db.settings.grades||!db.settings.grades.length) db.settings.grades=['A','B','C','Mixed'];
@@ -1840,6 +1963,9 @@ const PS=()=>perPage();
 
 function renderSection(sec){
   if(sec==='shops') renderShops();
+  else if(sec==='buyers') renderBuyers();
+  else if(sec==='godowns') renderGodowns();
+  else if(sec==='stacks') renderStacks();
   else if(sec==='bardana') renderBardanaTable();
   else if(sec==='purchase') renderPurchaseTable();
   else if(sec==='lifting') renderLiftingTable();
@@ -3248,10 +3374,175 @@ function clearFilter(section){
   if(section==='lifting'){ clr('lf-shop','lf-from','lf-to','lf-gp','lf-veh','lf-status','lf-search'); renderLiftingTable(); }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MASTERS ADDON (Phase 1) — Artiya helpers, Party(Buyer), Godown, Stack
+// ═══════════════════════════════════════════════════════════════
+const getBuyerName =id=>(db.buyers.find(b=>b.id===id)||{name:'Unknown'}).name;
+const getGodownName=id=>(db.godowns.find(g=>g.id===id)||{name:'—'}).name;
+const getStackName =id=>(db.stacks.find(s=>s.id===id)||{name:'—'}).name;
+const escHtmlSafe  =s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// Reset shop modal for a fresh "Naya Artiya"
+function prepNewShopModal(){
+  clr('shop-edit-id','s-name','s-owner','s-phone2','s-loc','s-note');
+  const t=E('shop-modal-title'); if(t) t.textContent='🧑‍🌾 Naya Artiya Add';
+}
+
+// Fill all godown <select> dropdowns
+function populateGodownSelects(){
+  ['st-godown'].forEach(id=>{
+    const el=E(id); if(!el) return;
+    const val=el.value;
+    el.innerHTML='<option value="">-- Godown Chunein --</option>';
+    db.godowns.forEach(g=>{ const o=document.createElement('option'); o.value=g.id; o.textContent=g.name; el.appendChild(o); });
+    if(val&&[...el.options].some(o=>o.value===val)) el.value=val;
+  });
+}
+
+// ─────────── PARTY (BUYER) CRUD ───────────
+function prepNewBuyerModal(){
+  clr('buyer-edit-id','by-name','by-owner','by-phone','by-loc','by-gstin','by-note');
+  E('buyer-modal-title').textContent='🤝 Naya Party Add';
+}
+function saveBuyer(){
+  const name=V('by-name').trim();
+  if(!name) return toast('Party naam likhein!','e');
+  const editId=V('buyer-edit-id');
+  const b={id:editId||uid(),name,owner:V('by-owner'),phone:V('by-phone'),location:V('by-loc'),gstin:V('by-gstin'),note:V('by-note'),
+    createdAt:editId?(db.buyers.find(x=>x.id===editId)||{}).createdAt:new Date().toISOString()};
+  if(editId){ const i=db.buyers.findIndex(x=>x.id===editId); if(i>-1) db.buyers[i]=b; }
+  else db.buyers.push(b);
+  saveDb(); renderAll(); closeModal('buyer-modal');
+  toast(editId?'Party update ho gayi!':'Party add ho gayi! ✅');
+}
+function editBuyer(id){
+  const b=db.buyers.find(x=>x.id===id); if(!b) return;
+  setV('buyer-edit-id',id);setV('by-name',b.name);setV('by-owner',b.owner);setV('by-phone',b.phone);setV('by-loc',b.location);setV('by-gstin',b.gstin);setV('by-note',b.note);
+  E('buyer-modal-title').textContent='✏️ Party Edit';
+  openModal('buyer-modal');
+}
+function deleteBuyer(id){
+  confirmDel('Ye Party delete karein? (Sale records baad me iske naam se nahi judenge)',()=>{
+    db.buyers=db.buyers.filter(x=>x.id!==id);
+    saveDb(); renderAll(); toast('Party delete ho gayi','i');
+  });
+}
+function renderBuyers(){
+  const tb=E('buyers-tbody'); if(!tb) return;
+  const cnt=E('buyers-count'); if(cnt) cnt.textContent=db.buyers.length;
+  if(!db.buyers.length){ tb.innerHTML='<tr><td colspan="6"><div class="empty" style="padding:24px"><div class="ei">🤝</div><p>Koi Party nahi. "Naya Party" se add karein.</p></div></td></tr>'; return; }
+  tb.innerHTML=db.buyers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<tr>
+    <td><strong>${escHtmlSafe(b.name)}</strong></td>
+    <td>${escHtmlSafe(b.owner)||'-'}</td>
+    <td>${escHtmlSafe(b.phone)||'-'}</td>
+    <td>${escHtmlSafe(b.location)||'-'}</td>
+    <td>${escHtmlSafe(b.gstin)||'-'}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="editBuyer('${b.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteBuyer('${b.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+
+// ─────────── GODOWN CRUD ───────────
+function prepNewGodownModal(){
+  clr('godown-edit-id','gd-name','gd-place','gd-cap','gd-incharge','gd-note');
+  E('godown-modal-title').textContent='🏬 Naya Godown Add';
+}
+function saveGodown(){
+  const name=V('gd-name').trim();
+  if(!name) return toast('Godown naam likhein!','e');
+  const editId=V('godown-edit-id');
+  const g={id:editId||uid(),name,place:V('gd-place'),capacity:V('gd-cap'),incharge:V('gd-incharge'),note:V('gd-note'),
+    createdAt:editId?(db.godowns.find(x=>x.id===editId)||{}).createdAt:new Date().toISOString()};
+  if(editId){ const i=db.godowns.findIndex(x=>x.id===editId); if(i>-1) db.godowns[i]=g; }
+  else db.godowns.push(g);
+  saveDb(); populateGodownSelects(); renderAll(); closeModal('godown-modal');
+  toast(editId?'Godown update ho gaya!':'Godown add ho gaya! ✅');
+}
+function editGodown(id){
+  const g=db.godowns.find(x=>x.id===id); if(!g) return;
+  setV('godown-edit-id',id);setV('gd-name',g.name);setV('gd-place',g.place);setV('gd-cap',g.capacity);setV('gd-incharge',g.incharge);setV('gd-note',g.note);
+  E('godown-modal-title').textContent='✏️ Godown Edit';
+  openModal('godown-modal');
+}
+function deleteGodown(id){
+  const stkCount=db.stacks.filter(s=>s.godownId===id).length;
+  confirmDel('Ye Godown delete karein?'+(stkCount?' Iske '+stkCount+' stack bhi delete ho jayenge.':''),()=>{
+    db.stacks=db.stacks.filter(s=>s.godownId!==id);
+    db.godowns=db.godowns.filter(x=>x.id!==id);
+    saveDb(); populateGodownSelects(); renderAll(); toast('Godown delete ho gaya','i');
+  });
+}
+function renderGodowns(){
+  const tb=E('godowns-tbody'); if(!tb) return;
+  const cnt=E('godowns-count'); if(cnt) cnt.textContent=db.godowns.length;
+  if(!db.godowns.length){ tb.innerHTML='<tr><td colspan="6"><div class="empty" style="padding:24px"><div class="ei">🏬</div><p>Koi Godown nahi. "Naya Godown" se add karein.</p></div></td></tr>'; return; }
+  tb.innerHTML=db.godowns.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(g=>{
+    const stk=db.stacks.filter(s=>s.godownId===g.id).length;
+    return `<tr>
+      <td><strong>${escHtmlSafe(g.name)}</strong></td>
+      <td>${escHtmlSafe(g.place)||'-'}</td>
+      <td>${g.capacity?fmt(g.capacity):'-'}</td>
+      <td>${escHtmlSafe(g.incharge)||'-'}</td>
+      <td><span class="badge badge-blue">${stk} stack</span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="editGodown('${g.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteGodown('${g.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─────────── STACK CRUD ───────────
+function prepNewStackModal(){
+  clr('stack-edit-id','st-name','st-cap','st-note');
+  setV('st-godown','');
+  populateGodownSelects();
+  E('stack-modal-title').textContent='🗄️ Naya Stack Add';
+  if(!db.godowns.length) toast('Pehle ek Godown banayein','i');
+}
+function saveStack(){
+  const name=V('st-name').trim();
+  const godownId=V('st-godown');
+  if(!godownId) return toast('Godown chunein!','e');
+  if(!name) return toast('Stack naam likhein!','e');
+  const editId=V('stack-edit-id');
+  const s={id:editId||uid(),godownId,name,capacity:V('st-cap'),note:V('st-note'),
+    createdAt:editId?(db.stacks.find(x=>x.id===editId)||{}).createdAt:new Date().toISOString()};
+  if(editId){ const i=db.stacks.findIndex(x=>x.id===editId); if(i>-1) db.stacks[i]=s; }
+  else db.stacks.push(s);
+  saveDb(); renderAll(); closeModal('stack-modal');
+  toast(editId?'Stack update ho gaya!':'Stack add ho gaya! ✅');
+}
+function editStack(id){
+  const s=db.stacks.find(x=>x.id===id); if(!s) return;
+  populateGodownSelects();
+  setV('stack-edit-id',id);setV('st-godown',s.godownId);setV('st-name',s.name);setV('st-cap',s.capacity);setV('st-note',s.note);
+  E('stack-modal-title').textContent='✏️ Stack Edit';
+  openModal('stack-modal');
+}
+function deleteStack(id){
+  confirmDel('Ye Stack delete karein?',()=>{
+    db.stacks=db.stacks.filter(x=>x.id!==id);
+    saveDb(); renderAll(); toast('Stack delete ho gaya','i');
+  });
+}
+function renderStacks(){
+  const tb=E('stacks-tbody'); if(!tb) return;
+  const cnt=E('stacks-count'); if(cnt) cnt.textContent=db.stacks.length;
+  if(!db.stacks.length){ tb.innerHTML='<tr><td colspan="5"><div class="empty" style="padding:24px"><div class="ei">🗄️</div><p>Koi Stack nahi. Godown banakar uske andar Stack add karein.</p></div></td></tr>'; return; }
+  tb.innerHTML=db.stacks.slice().sort((a,b)=>(getGodownName(a.godownId)+a.name).localeCompare(getGodownName(b.godownId)+b.name)).map(s=>`<tr>
+    <td><strong>${escHtmlSafe(s.name)}</strong></td>
+    <td><span class="badge badge-blue">${escHtmlSafe(getGodownName(s.godownId))}</span></td>
+    <td>${s.capacity?fmt(s.capacity):'-'}</td>
+    <td>${escHtmlSafe(s.note)||'-'}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="editStack('${s.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteStack('${s.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+
 // ── RENDER ALL ──
 function renderAll(){
   renderDashboard();
   renderShops();
+  renderBuyers();
+  renderGodowns();
+  renderStacks();
+  populateGodownSelects();
   renderBardanaTable();
   renderPurchaseTable();
   renderLiftingTable();
