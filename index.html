@@ -3036,6 +3036,95 @@ function downloadSampleCSV(){
   a.download='sample_'+importSection+'.csv'; a.click();
 }
 
+// ═══════════════ DUPLICATE / SIMILAR DETECTION (har import ke liye) ═══════════════
+function normTxt(s){ return String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').trim(); }
+function alnum(s){ return String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]/g,''); }
+function levenshtein(a,b){
+  a=alnum(a); b=alnum(b);
+  if(a===b) return 0;
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,i)=>i), cur=new Array(n+1);
+  for(let i=1;i<=m;i++){ cur[0]=i;
+    for(let j=1;j<=n;j++){ const cost=a[i-1]===b[j-1]?0:1; cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost); }
+    const t=prev; prev=cur; cur=t;
+  }
+  return prev[n];
+}
+/** Har section ke liye: existing records, row→comparable, validity, exact-key, similar-key, lot-key, label. */
+const dupConfig={
+  shops:{
+    existing(){ return (db.shops||[]).map(s=>({name:s.name})); },
+    rowToObj(r){ return {name:stripImportStr(r.name||'')}; },
+    valid(o){ return !!o.name; },
+    exact(o){ return 'S|'+normTxt(o.name); },
+    sim(o){ return 'S~|'+alnum(o.name); },
+    fuzzyName(o){ return o.name; },
+    display(o){ return o.name; }
+  },
+  bardana:{
+    existing(){ return (db.bardana||[]).map(b=>({shop:getShopName(b.shopId),date:b.date,type:b.type,qty:b.qty,bt:b.bardanaType})); },
+    rowToObj(r){ return {shop:stripImportStr(r.shop_name||''),date:importRowGetDate(r),type:(r.type==='issue'?'issue':'return'),qty:parseInt(r.qty)||0,bt:r.bardana_type||'50kg'}; },
+    valid(o){ return o.shop&&o.date; },
+    exact(o){ return 'B|'+normTxt(o.shop)+'|'+o.date+'|'+o.type+'|'+o.qty+'|'+normTxt(o.bt); },
+    sim(o){ return 'B~|'+normTxt(o.shop)+'|'+o.date+'|'+o.type; },
+    display(o){ return o.shop+' · '+o.date+' · '+o.type+' · '+o.qty; }
+  },
+  purchase:{
+    existing(){ return (db.purchases||[]).map(p=>({shop:getShopName(p.shopId),date:p.date,rate:p.rate,bags:p.bags,wt:p.wt,grade:p.grade,lot:p.lotNo})); },
+    rowToObj(r){ return {shop:stripImportStr(r.shop_name||''),date:importRowGetDate(r),rate:parseFloat(r.rate)||0,bags:parseInt(r.bags)||0,wt:parseFloat(r.wt_per_bag)||50,grade:r.grade||'B',lot:stripImportStr(r.lot_no||'')}; },
+    valid(o){ return o.shop&&o.date&&o.rate&&o.bags; },
+    exact(o){ return 'P|'+normTxt(o.shop)+'|'+o.date+'|'+o.rate+'|'+o.bags+'|'+o.wt+'|'+normTxt(o.grade); },
+    sim(o){ return 'P~|'+normTxt(o.shop)+'|'+o.date+'|'+o.rate; },
+    lot(o){ return o.lot?('PL|'+normTxt(o.shop)+'|'+normTxt(o.lot)):''; },
+    display(o){ return o.shop+' · '+o.date+' · ₹'+o.rate+' · '+o.bags+' bags'+(o.lot?(' · '+o.lot):''); }
+  },
+  lifting:{
+    existing(){ return (db.liftings||[]).map(l=>({shop:getShopName(l.shopId),date:l.date,gp:l.gatepass,veh:l.vehicle})); },
+    rowToObj(r){ return {shop:stripImportStr(r.shop_name||''),date:importRowGetDate(r),gp:stripImportStr(r.gatepass||''),veh:stripImportStr(r.vehicle||'')}; },
+    valid(o){ return o.shop&&o.date; },
+    exact(o){ return 'L|'+normTxt(o.shop)+'|'+o.date+'|'+normTxt(o.gp)+'|'+normTxt(o.veh); },
+    sim(o){ return 'L~|'+normTxt(o.shop)+'|'+o.date+'|'+(normTxt(o.veh)||normTxt(o.gp)); },
+    display(o){ return o.shop+' · '+o.date+(o.gp?(' · '+o.gp):'')+(o.veh?(' · '+o.veh):''); }
+  }
+};
+/** importData ki har row par _dup ('new'|'similar'|'dup') aur _dupMsg lagao; counts return karo. */
+function annotateDuplicates(){
+  const cfg=dupConfig[importSection];
+  if(!cfg){ importData.forEach(r=>{ r._dup='new'; r._dupMsg=''; }); return {dup:0,similar:0,fresh:importData.length}; }
+  const exSet=new Set(), simSet=new Set(), lotSet=new Set();
+  const exNames = importSection==='shops' ? [] : null;
+  cfg.existing().forEach(o=>{
+    exSet.add(cfg.exact(o));
+    if(cfg.sim) simSet.add(cfg.sim(o));
+    if(cfg.lot){ const l=cfg.lot(o); if(l) lotSet.add(l); }
+    if(exNames) exNames.push(o.name);
+  });
+  let dup=0, similar=0, fresh=0;
+  const seenExact=new Set(), seenSim=new Set(), seenLot=new Set();
+  importData.forEach(r=>{
+    const o=cfg.rowToObj(r);
+    if(!cfg.valid(o)){ r._dup='new'; r._dupMsg=''; fresh++; return; }
+    const ek=cfg.exact(o);
+    const sk=cfg.sim?cfg.sim(o):'';
+    const lk=cfg.lot?cfg.lot(o):'';
+    let status='new', msg='';
+    if(exSet.has(ek)||seenExact.has(ek)||(lk&&(lotSet.has(lk)||seenLot.has(lk)))){
+      status='dup'; msg=(seenExact.has(ek)||(lk&&seenLot.has(lk)))?'File ke andar repeat':'Pehle se app mein maujood';
+    } else if(sk&&(simSet.has(sk)||seenSim.has(sk))){
+      status='similar'; msg='Milta-julta record pehle se hai';
+    } else if(exNames){
+      let near=null;
+      for(let i=0;i<exNames.length;i++){ if(alnum(exNames[i])!==alnum(o.name)&&levenshtein(exNames[i],o.name)<=2){ near=exNames[i]; break; } }
+      if(near){ status='similar'; msg='Naam milta-julta: "'+near+'"'; }
+    }
+    if(status==='dup') dup++; else if(status==='similar') similar++; else fresh++;
+    seenExact.add(ek); if(sk) seenSim.add(sk); if(lk) seenLot.add(lk);
+    if(exNames&&status==='new') exNames.push(o.name);
+    r._dup=status; r._dupMsg=msg;
+  });
+  return {dup,similar,fresh};
+}
+
 function handleImportFile(ev){
   const file=ev.target.files[0]; if(!file) return;
   const reader=new FileReader();
@@ -3063,10 +3152,29 @@ function handleImportFile(ev){
       return obj;
     });
     importData=data;
+    const summ=annotateDuplicates();
+    const badge=st=> st==='dup'
+        ? '<span style="background:#fde2e1;color:#c0392b;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap">DUPLICATE</span>'
+        : st==='similar'
+        ? '<span style="background:#fff3cd;color:#9a6a00;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap">SIMILAR</span>'
+        : '<span style="background:var(--gbg);color:var(--green);padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap">NEW</span>';
     E('import-preview-title').textContent=`Preview: ${data.length} records found`;
-    const cols=headers.slice(0,6);
-    E('import-preview').innerHTML=`<table><thead><tr>${cols.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${data.slice(0,10).map(r=>`<tr>${cols.map(h=>`<td>${r[h]||''}</td>`).join('')}</tr>`).join('')}${data.length>10?`<tr><td colspan="${cols.length}" style="text-align:center;color:var(--text3)">... ${data.length-10} more rows</td></tr>`:''}</tbody></table>`;
-    E('import-stats').textContent=`✅ ${data.length} rows ready to import from ${file.name}`;
+    const cols=headers.slice(0,5);
+    const rowsHtml=data.slice(0,30).map(r=>{
+      const bg=r._dup==='dup'?'background:#fff5f5':r._dup==='similar'?'background:#fffaf0':'';
+      return `<tr style="${bg}"><td>${badge(r._dup)}${r._dupMsg?('<br><small style="color:var(--text3)">'+escHtml(r._dupMsg)+'</small>'):''}</td>${cols.map(h=>`<td>${escHtml(r[h]||'')}</td>`).join('')}</tr>`;
+    }).join('');
+    E('import-preview').innerHTML=`<table><thead><tr><th>Status</th>${cols.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rowsHtml}${data.length>30?`<tr><td colspan="${cols.length+1}" style="text-align:center;color:var(--text3)">... ${data.length-30} more rows</td></tr>`:''}</tbody></table>`;
+    E('import-stats').innerHTML=`<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-weight:600">
+        <span>📦 Total: <b>${data.length}</b></span>
+        <span style="color:var(--green)">🆕 New: <b>${summ.fresh}</b></span>
+        <span style="color:#9a6a00">⚠️ Similar: <b>${summ.similar}</b></span>
+        <span style="color:#c0392b">🛑 Duplicate: <b>${summ.dup}</b></span>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap;color:var(--text2)">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="imp-skip-dup" checked> Duplicate skip karo</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="imp-skip-sim"> Similar bhi skip karo</label>
+      </div>`;
     E('import-preview-wrap').style.display='block';
     E('import-confirm-btn').style.display='block';
   };
@@ -3076,9 +3184,17 @@ function handleImportFile(ev){
 function doImport(){
   if(!importData.length) return toast('Koi data nahi!','e');
   const findShop=name=>db.shops.find(s=>s.name.toLowerCase().trim()===name.toLowerCase().trim());
-  let added=0, skipped=0, errors=[], shopsAutoCreated=0;
+  let added=0, skipped=0, errors=[], shopsAutoCreated=0, dupSkipped=0, simSkipped=0;
+  const skipDup = E('imp-skip-dup') ? E('imp-skip-dup').checked : true;
+  const skipSim = E('imp-skip-sim') ? E('imp-skip-sim').checked : false;
+  const blocked=r=>{
+    if(r._dup==='dup' && skipDup){ dupSkipped++; return true; }
+    if(r._dup==='similar' && skipSim){ simSkipped++; return true; }
+    return false;
+  };
   if(importSection==='shops'){
     importData.forEach((r,i)=>{
+      if(blocked(r)) return;
       if(!r.name){ skipped++; return; }
       if(db.shops.find(s=>s.name.toLowerCase()===r.name.toLowerCase())){ errors.push(`Row ${i+2}: Shop "${r.name}" already exists`); skipped++; return; }
       db.shops.push({id:uid(),name:r.name,owner:r.owner||'',phone:r.phone||'',location:r.location||'',note:r.note||'',createdAt:new Date().toISOString()});
@@ -3086,6 +3202,7 @@ function doImport(){
     });
   } else if(importSection==='bardana'){
     importData.forEach((r,i)=>{
+      if(blocked(r)) return;
       const shop=findShop(r.shop_name); if(!shop){ errors.push(`Row ${i+2}: Shop "${r.shop_name}" nahi mili`); skipped++; return; }
       const d=importRowGetDate(r);
       if(!d||!r.qty||!r.type){ skipped++; return; }
@@ -3094,6 +3211,7 @@ function doImport(){
     });
   } else if(importSection==='purchase'){
     importData.forEach((r,i)=>{
+      if(blocked(r)) return;
       const nameRaw=stripImportStr(r.shop_name||'');
       if(!nameRaw){ errors.push(`Row ${i+2}: shop_name khali hai`); skipped++; return; }
       let shop=findShop(nameRaw);
@@ -3110,6 +3228,7 @@ function doImport(){
     });
   } else if(importSection==='lifting'){
     importData.forEach((r,i)=>{
+      if(blocked(r)) return;
       const shop=findShop(r.shop_name); if(!shop){ errors.push(`Row ${i+2}: Shop "${r.shop_name}" nahi mili`); skipped++; return; }
       let lots=[];
       try{
@@ -3129,6 +3248,8 @@ function doImport(){
   saveDb(); populateDropdowns(); renderAll(); closeModal('import-modal');
   let msg=`✅ ${added} records import ho gaye!`;
   if(shopsAutoCreated) msg+=` (${shopsAutoCreated} naye shop auto-ban gaye.)`;
+  if(dupSkipped) msg+=` 🛑 ${dupSkipped} duplicate skip.`;
+  if(simSkipped) msg+=` ⚠️ ${simSkipped} similar skip.`;
   if(skipped) msg+=` ${skipped} skipped.`;
   toast(msg);
   if(errors.length) setTimeout(()=>alert('Import Issues:\n'+errors.slice(0,10).join('\n')),500);
