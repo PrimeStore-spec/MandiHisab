@@ -11,6 +11,7 @@
 <!-- Firebase (Realtime DB) — is Mandi app ka data alag path pe: businessApps/mandiMaizeUltimate -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <style>
 :root{
   --bg:#f0f2f5;--surface:#fff;--s2:#f7f8fa;--s3:#eef0f4;
@@ -1155,6 +1156,13 @@ function initFirebaseSync(){
     }
     if(!firebase.apps.length) firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
     else firebaseApp = firebase.app();
+    setFirebaseStatus('Login ho raha hai…');
+    firebase.auth().signInAnonymously().catch(function(err){
+      setFirebaseStatus('Login error: '+(err&&err.message)+' — Firebase Console me Anonymous sign-in enable karein', true);
+    });
+    firebase.auth().onAuthStateChanged(function(user){
+    if(!user) return;            // jab tak login na ho ruko
+    if(firebaseReady) return;    // dobaara setup na ho
     firebaseDbRef = firebase.database().ref(RTDB_APP_PATH);
     firebaseReady = true;
     setFirebaseStatus('Syncing…');
@@ -1200,6 +1208,7 @@ function initFirebaseSync(){
         setFirebaseStatus('Cloud se update mila — '+new Date(remoteTs).toLocaleTimeString('en-IN'));
       });
     }
+    });
   }catch(e){
     setFirebaseStatus('Firebase init error: '+e.message, true);
   }
