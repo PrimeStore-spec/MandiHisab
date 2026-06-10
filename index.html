@@ -628,7 +628,7 @@ main{max-width:100%;padding:12px 10px;}
       </div>
     </div>
     <div class="tsc"><table>
-      <thead><tr><th style="width:36px"><input type="checkbox" id="bulk-all-purchase" title="Is page par sab" onchange="syncBulkMaster('purchase')"></th><th onclick="sortTable('purchase','date')">Date</th><th onclick="sortTable('purchase','shopName')">Shop</th><th onclick="sortTable('purchase','rate')">Rate/Qtl</th><th>Grade</th><th>Bill</th><th onclick="sortTable('purchase','bags')">Bags Kharida</th><th>Wt/Bag</th><th>Moisture</th><th onclick="sortTable('purchase','lifted')">Lifted</th><th onclick="sortTable('purchase','pending')">Pending</th><th>Status</th><th>Lot Value</th><th>Remarks</th><th>Action</th></tr></thead>
+      <thead><tr><th style="width:36px"><input type="checkbox" id="bulk-all-purchase" title="Is page par sab" onchange="syncBulkMaster('purchase')"></th><th onclick="sortTable('purchase','date')">Date</th><th onclick="sortTable('purchase','shopName')">Shop</th><th onclick="sortTable('purchase','rate')">Rate/Qtl</th><th>Grade</th><th>Bill</th><th>Weight (Qtl)</th><th onclick="sortTable('purchase','bags')">Bags Kharida</th><th>Moisture</th><th onclick="sortTable('purchase','lifted')">Lifted</th><th onclick="sortTable('purchase','pending')">Pending</th><th>Status</th><th>Lot Value</th><th>Remarks</th><th>Action</th></tr></thead>
       <tbody id="purchase-tbody"></tbody>
     </table></div>
     <div class="pag"><div class="pi" id="purchase-pi">0 records</div><div class="pbs" id="purchase-pbs"></div></div>
@@ -2594,6 +2594,7 @@ function renderPurchaseTable(){
     E('purchase-sum-row').innerHTML=`
       <div class="sum-item"><div class="sum-v">${data.length}</div><div class="sum-l">Lots</div></div>
       <div class="sum-item"><div class="sum-v">${fmt(totalBags)}</div><div class="sum-l">Total Bags</div></div>
+      <div class="sum-item"><div class="sum-v">${fmtQtl(totalBags*50/100)}</div><div class="sum-l">Total Weight (Qtl)</div></div>
       <div class="sum-item"><div class="sum-v">${fmt(totalLifted)}</div><div class="sum-l">Lifted</div></div>
       <div class="sum-item"><div class="sum-v">${fmt(totalPending)}</div><div class="sum-l">Pending</div></div>
       <div class="sum-item"><div class="sum-v">${rupee(Math.round(totalValue))}</div><div class="sum-l">Total Value</div></div>`;
@@ -2608,8 +2609,8 @@ function renderPurchaseTable(){
     <td><strong style="color:var(--orange);font-family:'Rajdhani',sans-serif;font-size:14px">${rupee(p.rate)}</strong></td>
     <td><span class="badge badge-gray">${escHtml(p.grade||'B')}</span></td>
     <td>${(p.billType||'with_bill')==='without_bill'?'<span class="badge badge-amber">No Bill</span>':'<span class="badge badge-green">Bill</span>'}</td>
+    <td style="color:var(--purple);font-weight:700">${fmtQtl(p.bags*50/100)} <span style="color:var(--text3);font-weight:400">Qtl</span></td>
     <td style="color:var(--blue);font-weight:700">${fmt(p.bags)}</td>
-    <td style="color:var(--text3)">${p.wt||50} kg</td>
     <td style="color:var(--text3)">${p.moisture?p.moisture+'%':'-'}</td>
     <td style="color:var(--green);font-weight:700">${fmt(p.lifted)}</td>
     <td><strong style="color:${p.pending>0?'var(--orange)':'var(--green)'};">${fmt(p.pending)}</strong></td>
