@@ -370,7 +370,7 @@ main{max-width:100%;padding:12px 10px;}
   <div class="tw">
     <div class="th2"><div class="ttl">🏬 Godown List</div><div class="rec-count" id="godowns-count">0</div></div>
     <div class="tsc"><table>
-      <thead><tr><th>Godown Naam</th><th>Jagah</th><th>Capacity (Bags)</th><th>Incharge</th><th>Stacks</th><th>Action</th></tr></thead>
+      <thead><tr><th>Godown Naam</th><th>Jagah</th><th>Capacity (Bags)</th><th>Incharge</th><th>Stacks</th><th style="text-align:right">Stock Bags</th><th style="text-align:right">Weight (Qtl)</th><th>Action</th></tr></thead>
       <tbody id="godowns-tbody"></tbody>
     </table></div>
   </div>
@@ -387,7 +387,7 @@ main{max-width:100%;padding:12px 10px;}
   <div class="tw">
     <div class="th2"><div class="ttl">🗄️ Stack List</div><div class="rec-count" id="stacks-count">0</div></div>
     <div class="tsc"><table>
-      <thead><tr><th>Stack Naam / No.</th><th>Godown</th><th>Capacity (Bags)</th><th>Note</th><th>Action</th></tr></thead>
+      <thead><tr><th>Stack Naam / No.</th><th>Godown</th><th>Capacity (Bags)</th><th style="text-align:right">Stock Bags</th><th style="text-align:right">Weight (Qtl)</th><th>Note</th><th>Action</th></tr></thead>
       <tbody id="stacks-tbody"></tbody>
     </table></div>
   </div>
@@ -396,10 +396,10 @@ main{max-width:100%;padding:12px 10px;}
 <!-- ════════════════════════════ DASHBOARD ════════════════════════════ -->
 <div class="section active" id="section-dashboard">
   <div class="stats-grid">
-    <div class="sc" style="--cc:var(--blue)"><span class="si">📅</span><div class="sl">YESTERDAY PURCHASE</div><div class="sv" id="ds-yesterday-bags">0</div><div class="ss" id="ds-yesterday-sub">bags (yesterday)</div></div>
+    <div class="sc" style="--cc:var(--blue)"><span class="si">📅</span><div class="sl">Kal Da Purchase</div><div class="sv" id="ds-yesterday-bags">0</div><div class="ss" id="ds-yesterday-sub">bags (yesterday)</div></div>
     <div class="sc" style="--cc:var(--purple)"><span class="si">📦</span><div class="sl">Purchase Lots</div><div class="sv" id="ds-lots">0</div><div class="ss">Rate-wise entries</div></div>
     <div class="sc" style="--cc:#0f766e"><span class="si">🌽</span><div class="sl">Total Purchased</div><div class="sv" id="ds-total-bags">0</div><div class="ss" id="ds-total-bags-sub">bags</div></div>
-    <div class="sc" style="--cc:#d97706"><span class="si">⏳</span><div class="sl">PENDING LIFTING</div><div class="sv" id="ds-pending-bags">0</div><div class="ss" id="ds-pending-val">₹0 value</div></div>
+    <div class="sc" style="--cc:#d97706"><span class="si">⏳</span><div class="sl">Baaki at Shops</div><div class="sv" id="ds-pending-bags">0</div><div class="ss" id="ds-pending-val">₹0 value</div></div>
     <div class="sc" style="--cc:var(--green)"><span class="si">🚛</span><div class="sl">Total Lifted</div><div class="sv" id="ds-lifted-bags">0</div><div class="ss" id="ds-lifted-trips">0 trips</div></div>
     <div class="sc" style="--cc:var(--red)"><span class="si">🛍️</span><div class="sl">Bardana Baaki</div><div class="sv" id="ds-bardana-out">0</div><div class="ss">bags wapas nahi</div></div>
     <div class="sc" style="--cc:#9a3412"><span class="si">💰</span><div class="sl">Purchase Value</div><div class="sv" id="ds-value">₹0</div><div class="ss">total invested</div></div>
@@ -656,6 +656,9 @@ main{max-width:100%;padding:12px 10px;}
       <div class="fgrp"><span class="fl">Date Tak</span><input type="date" class="fi" id="lf-to" onchange="renderLiftingTable()"></div>
       <div class="fgrp"><span class="fl">Gate Pass</span><input class="fi" id="lf-gp" placeholder="GP no..." oninput="renderLiftingTable()"></div>
       <div class="fgrp"><span class="fl">Gaadi No.</span><input class="fi" id="lf-veh" placeholder="Gaadi..." oninput="renderLiftingTable()"></div>
+      <div class="fgrp"><span class="fl">Grade</span><select class="fs" id="lf-grade" onchange="renderLiftingTable()"><option value="">Sab</option></select></div>
+      <div class="fgrp"><span class="fl">Godown</span><select class="fs" id="lf-godown" onchange="onLfGodownChange()"><option value="">Sab</option></select></div>
+      <div class="fgrp"><span class="fl">Stack</span><select class="fs" id="lf-stack" onchange="renderLiftingTable()"><option value="">Sab</option></select></div>
       <div class="fgrp"><span class="fl">Status</span><select class="fs" id="lf-status" onchange="renderLiftingTable()"><option value="">Sab</option><option value="complete">Complete</option><option value="pending">Pending</option><option value="partial">Partial</option></select></div>
       <div style="flex:0;display:flex;gap:5px">
         <button class="btn btn-blue btn-sm" onclick="renderLiftingTable()">⚡</button>
@@ -892,6 +895,24 @@ main{max-width:100%;padding:12px 10px;}
   </div>
 </div>
 
+<!-- STACK A-to-Z SUMMARY MODAL -->
+<div class="ov" id="stack-summary-modal">
+  <div class="modal-box modal-lg">
+    <div class="mh"><div class="mt" id="stack-summary-title">🗄️ Stack Summary</div><button class="mx" onclick="closeModal('stack-summary-modal')">✕</button></div>
+    <div class="mb" id="stack-summary-body"></div>
+    <div class="mf"><div></div><div><button class="btn btn-ghost" onclick="closeModal('stack-summary-modal')">Band Karein</button></div></div>
+  </div>
+</div>
+
+<!-- GODOWN DETAIL MODAL (sare stacks ka werwa) -->
+<div class="ov" id="godown-detail-modal">
+  <div class="modal-box modal-lg">
+    <div class="mh"><div class="mt" id="godown-detail-title">🏬 Godown Detail</div><button class="mx" onclick="closeModal('godown-detail-modal')">✕</button></div>
+    <div class="mb" id="godown-detail-body"></div>
+    <div class="mf"><div></div><div><button class="btn btn-ghost" onclick="closeModal('godown-detail-modal')">Band Karein</button></div></div>
+  </div>
+</div>
+
 <!-- MOVEMENT MODAL (Sale / Godown) -->
 <div class="ov" id="movement-modal">
   <div class="modal-box modal-lg">
@@ -1103,15 +1124,14 @@ main{max-width:100%;padding:12px 10px;}
         </div>
         <div id="ld-profit-hint" style="font-size:12px;color:var(--green);margin-top:4px"></div>
       </div>
-      <!-- GODOWN destination fields -->
+      <!-- GODOWN destination fields (per-lot placement) -->
       <div id="ld-godown-fields" style="display:none">
-        <div class="fgrid fg4">
-          <div class="fg2x"><div class="flbl">Godown *</div><div style="display:flex;gap:6px"><select class="finp" id="ld-godown" onchange="populateLiftingDestStacks()" style="flex:1"><option value="">-- Godown --</option></select><button type="button" class="btn btn-green" style="white-space:nowrap;padding:0 10px" onclick="quickAddGodown('ld-godown')">＋</button></div></div>
-          <div class="fg2x"><div class="flbl">Stack *</div><div style="display:flex;gap:6px"><select class="finp" id="ld-stack" style="flex:1"><option value="">-- Stack --</option></select><button type="button" class="btn btn-green" style="white-space:nowrap;padding:0 10px" onclick="quickAddStack('ld-stack')">＋</button></div></div>
-          <div class="fg2x"><div class="flbl">Bags</div><input type="number" class="finp" id="ld-gbags" min="0" placeholder="Auto lifting se" oninput="onLiftGbagsChange()"></div>
-          <div class="fg2x"><div class="flbl">Weight (Qtl)</div><input type="number" class="finp" id="ld-gqtl" step="0.01" placeholder="Auto bags se"></div>
-          <div class="fg2x"><div class="flbl">Godown Destination</div><input class="finp" id="ld-gdest" placeholder="Jagah / village"></div>
+        <div style="background:var(--bluebg);border:1px solid #c5d8f8;border-radius:var(--r2);padding:10px 14px;margin-bottom:10px;font-size:12.5px;color:var(--blue2);line-height:1.5">
+          📌 <strong>Har rate / grade ke maal ka godown + stack alag-alag chunein</strong> — upar lot list mein har row ke neeche "🏬 Is maal ka thikana" wala option aa gaya hai.<br>
+          Jaise ek hi gaadi mein A grade aur B grade mix aaya ho, to A grade ko ek stack par aur B grade ko doosre stack par laga sakte hain. Report bilkul sahi banegi.
         </div>
+        <div id="ld-godown-summary" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
+        <div class="fg2x"><div class="flbl">Godown Destination (optional)</div><input class="finp" id="ld-gdest" placeholder="Jagah / village (sab par ek jaisa)"></div>
       </div>
       <div class="divider"></div>
       <div class="sec-title">🚛 Vehicle & Logistics</div>
@@ -1505,6 +1525,11 @@ function refreshGradeSelects(){
     pf.innerHTML='<option value="">Sab</option>'+grades.map(g=>`<option value="${escHtml(g)}">${escHtml(g)}</option>`).join('');
     if(fv&&[...pf.options].some(o=>o.value===fv)) pf.value=fv;
   }
+  const lg=E('lf-grade'); if(lg){
+    const fv=lg.value;
+    lg.innerHTML='<option value="">Sab</option>'+grades.map(g=>`<option value="${escHtml(g)}">${escHtml(g)}</option>`).join('');
+    if(fv&&[...lg.options].some(o=>o.value===fv)) lg.value=fv;
+  }
 }
 function getPurchaseLiftStatus(p){
   const l=getLiftedFromLot(p.id);
@@ -1684,7 +1709,27 @@ function populateDropdowns(){
     });
     if(val&&[...el.options].some(o=>o.value===val)) el.value=val;
   });
+  // Lifting filter — Godown & Stack dropdowns
+  const lgo=E('lf-godown'); if(lgo){
+    const fv=lgo.value;
+    lgo.innerHTML='<option value="">Sab</option>'+(db.godowns||[]).map(g=>`<option value="${g.id}">${escHtml(g.name)}</option>`).join('');
+    if(fv&&[...lgo.options].some(o=>o.value===fv)) lgo.value=fv;
+  }
+  populateLfStack();
   refreshGradeSelects();
+}
+// Lifting Stack dropdown — selected godown ke hisaab se filter
+function populateLfStack(){
+  const el=E('lf-stack'); if(!el) return;
+  const fv=el.value;
+  const gd=V('lf-godown');
+  const stacks=(db.stacks||[]).filter(s=>!gd||s.godownId===gd);
+  el.innerHTML='<option value="">Sab</option>'+stacks.map(s=>`<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
+  if(fv&&[...el.options].some(o=>o.value===fv)) el.value=fv;
+}
+function onLfGodownChange(){
+  populateLfStack();
+  renderLiftingTable();
 }
 
 // ═══════════════ SHOP CRUD ═══════════════
@@ -1979,7 +2024,7 @@ function openLiftingModalNew(){
   setV('l-gp',nextGatePass());
   populateDropdowns();
   setV('l-add-shop','');
-  clr('ld-buyer','ld-address','ld-rate','ld-qtl','ld-partywt','ld-amount','ld-unload','ld-due','ld-godown','ld-stack','ld-gbags','ld-gqtl','ld-gdest');
+  clr('ld-buyer','ld-address','ld-rate','ld-qtl','ld-partywt','ld-amount','ld-unload','ld-due','ld-gdest');
   if(E('ld-profit-hint')) E('ld-profit-hint').textContent='';
   refreshLiftingDestSelects();
   setLiftDest('none');
@@ -1994,7 +2039,7 @@ function addLiftingParty(){
   const sid=V('l-add-shop');
   if(!sid) return toast('Pehle shop dropdown se party chunein','e');
   if(liftingPartiesState.find(x=>x.shopId===sid)) return toast('Ye party pehle se list mein hai','e');
-  liftingPartiesState.push({shopId:sid,sel:{}});
+  liftingPartiesState.push({shopId:sid,sel:{},place:{}});
   setV('l-add-shop','');
   renderLiftingModalParties();
 }
@@ -2024,11 +2069,13 @@ function renderLiftingModalParties(){
     }).filter(p=>p.pending>0).sort((a,b)=>a.date.localeCompare(b.date));
     const head=`<div style="background:var(--s2);padding:8px 12px;font-weight:700;border:1px solid var(--border);border-radius:var(--r2) var(--r2) 0 0;margin-top:12px;color:var(--blue2)">🏪 ${escHtml(getShopName(part.shopId))}</div>`;
     if(!lots.length) return head+`<div style="border:1px solid var(--border);border-top:none;padding:12px;color:var(--text3);border-radius:0 0 var(--r2) var(--r2)">Is party par koi pending stock nahi.</div>`;
+    const showPlace=(V('ld-kind')==='godown');
     const rows=lots.map(lot=>{
       const pend=lot.pending;
       const cur=part.sel[lot.id]||0;
       const iid='lq-'+part.shopId+'-'+lot.id;
       const pct=lot.bags?Math.round(lot.lifted/lot.bags*100):0;
+      const placeRow=showPlace?liftLotPlaceRowHtml(part.shopId,lot.id):'';
       return `<div class="lot-sel-row" style="border:1px solid var(--border);border-top:none">
       <div>
         <span class="badge badge-amber" style="font-size:12px">${rupee(lot.rate)}/Qtl</span>
@@ -2046,6 +2093,7 @@ function renderLiftingModalParties(){
         <div class="prog" style="width:80px"><div class="pf" style="background:var(--blue);width:${pct}%"></div></div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px">${pct}% lifted</div>
       </div>
+      ${placeRow}
     </div>`;
     }).join('');
     return head+rows+`<div style="height:8px"></div>`;
@@ -2059,6 +2107,7 @@ function renderLiftingModalParties(){
     });
   });
   updateLiftingSummaryMeta();
+  updateLiftGodownSummary();
 }
 
 function lotQtyChangeParty(shopId,purchaseId,max){
@@ -2073,6 +2122,63 @@ function lotQtyChangeParty(shopId,purchaseId,max){
   if(v>0&&p&&valEl){ valEl.textContent='≈'+rupee(Math.round(v*p.rate*(p.wt||50)/100)); valEl.style.color='var(--orange)'; }
   else if(valEl) valEl.textContent='';
   updateLiftingSummaryMeta();
+  updateLiftGodownSummary();
+}
+
+// ── PER-LOT GODOWN PLACEMENT (mixed grade ko alag-alag stack par) ──
+function liftLotGetPlace(shopId,lotId){
+  const part=liftingPartiesState.find(p=>p.shopId===shopId);
+  if(!part) return {};
+  part.place=part.place||{};
+  return part.place[lotId]||{};
+}
+function liftLotPlaceRowHtml(shopId,lotId){
+  const pl=liftLotGetPlace(shopId,lotId);
+  const gid=pl.godownId||'', sid=pl.stackId||'';
+  const gOpts='<option value="">-- Godown --</option>'+db.godowns.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(g=>`<option value="${g.id}"${g.id===gid?' selected':''}>${escHtml(g.name)}</option>`).join('');
+  const stacks=db.stacks.filter(s=>!gid||s.godownId===gid).sort((a,b)=>a.name.localeCompare(b.name));
+  const sOpts='<option value="">-- Stack --</option>'+stacks.map(s=>`<option value="${s.id}"${s.id===sid?' selected':''}>${escHtml(s.name)}</option>`).join('');
+  return `<div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">
+    <span style="font-size:11px;color:var(--blue2);font-weight:700;white-space:nowrap">🏬 Is maal ka thikana:</span>
+    <select class="finp" style="flex:1;min-width:130px;height:34px" id="lg-g-${shopId}-${lotId}" onchange="liftLotGodownChange('${shopId}','${lotId}')">${gOpts}</select>
+    <select class="finp" style="flex:1;min-width:130px;height:34px" id="lg-s-${shopId}-${lotId}" onchange="liftLotStackChange('${shopId}','${lotId}')">${sOpts}</select>
+  </div>`;
+}
+function liftLotGodownChange(shopId,lotId){
+  const part=liftingPartiesState.find(p=>p.shopId===shopId); if(!part) return;
+  part.place=part.place||{}; part.place[lotId]=part.place[lotId]||{};
+  const g=V('lg-g-'+shopId+'-'+lotId);
+  part.place[lotId].godownId=g; part.place[lotId].stackId='';
+  const sEl=E('lg-s-'+shopId+'-'+lotId);
+  if(sEl){
+    const stacks=db.stacks.filter(s=>!g||s.godownId===g).sort((a,b)=>a.name.localeCompare(b.name));
+    sEl.innerHTML='<option value="">-- Stack --</option>'+stacks.map(s=>`<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
+  }
+  updateLiftGodownSummary();
+}
+function liftLotStackChange(shopId,lotId){
+  const part=liftingPartiesState.find(p=>p.shopId===shopId); if(!part) return;
+  part.place=part.place||{}; part.place[lotId]=part.place[lotId]||{};
+  part.place[lotId].stackId=V('lg-s-'+shopId+'-'+lotId);
+  updateLiftGodownSummary();
+}
+// Godown mode mein live summary: kis stack par kitne bags ja rahe hain
+function updateLiftGodownSummary(){
+  const box=E('ld-godown-summary'); if(!box) return;
+  if(V('ld-kind')!=='godown'){ box.innerHTML=''; return; }
+  const byStack={}; let placed=0,total=0,unplaced=0;
+  liftingPartiesState.forEach(part=>{
+    Object.entries(part.sel||{}).forEach(([lotId,bags])=>{
+      const b=parseInt(bags,10)||0; if(b<=0) return; total+=b;
+      const pl=(part.place||{})[lotId]||{};
+      if(pl.godownId&&pl.stackId){ placed+=b; const k=getGodownName(pl.godownId)+' › '+getStackName(pl.stackId); byStack[k]=(byStack[k]||0)+b; }
+      else unplaced+=b;
+    });
+  });
+  if(!total){ box.innerHTML=''; return; }
+  let html=Object.entries(byStack).map(([k,v])=>`<span class="badge badge-green" style="margin:2px 4px 2px 0">${escHtml(k)}: ${fmt(v)} bags</span>`).join('');
+  if(unplaced>0) html+=`<span class="badge badge-amber" style="margin:2px 4px 2px 0">⚠️ ${fmt(unplaced)} bags ka stack baaki hai</span>`;
+  box.innerHTML=html;
 }
 
 function updateLiftingSummaryMeta(){
@@ -2121,8 +2227,17 @@ function saveLifting(){
     if(!V('ld-buyer')) return toast('Sale ke liye Party (buyer) chunein!','e');
     if((parseFloat(V('ld-rate'))||0)<=0) return toast('Sale rate likhein!','e');
   } else if(destKind==='godown'){
-    if(!V('ld-godown')) return toast('Godown chunein!','e');
-    if(!V('ld-stack')) return toast('Stack chunein!','e');
+    // har lot (rate/grade) ke saamne godown+stack hona zaroori hai
+    for(const part of liftingPartiesState){
+      for(const [lotId,bags] of Object.entries(part.sel||{})){
+        if((parseInt(bags,10)||0)<=0) continue;
+        const pl=(part.place||{})[lotId]||{};
+        if(!pl.godownId||!pl.stackId){
+          const p=db.purchases.find(x=>x.id===lotId);
+          return toast(`${getShopName(part.shopId)} @ ${p?rupee(p.rate):''} (${p&&p.grade?p.grade:'?'}) ka godown+stack chunein!`,'e');
+        }
+      }
+    }
   }
   if(!editId) bumpGatePassCounter(gatepass);
   const allLots=parties.flatMap(pt=>pt.lots);
@@ -2137,33 +2252,34 @@ function saveLifting(){
   };
   if(editId){ const idx=db.liftings.findIndex(l=>l.id===editId); if(idx>-1) db.liftings[idx]=rec; }
   else db.liftings.push(rec);
-  // ── auto Sale/Godown movement linked to this lifting ──
+  // ── auto Sale/Godown movement(s) linked to this lifting ──
   const totalBags=allLots.reduce((s,x)=>s+x.bags,0);
   const avgWt=liftSelAvgWt();
-  const existingMv=db.movements.find(m=>m.liftingId===rec.id && m.auto);
-  if(destKind==='sale'||destKind==='godown'){
-    let mv={ id: existingMv?existingMv.id:uid(), liftingId:rec.id, date:rec.date, kind:destKind, bags:totalBags, parentId:'', auto:true, note:'(lifting se auto)', createdAt: existingMv?existingMv.createdAt:new Date().toISOString() };
-    if(destKind==='sale'){
-      const rate=parseFloat(V('ld-rate'))||0;
-      const qtl=parseFloat(V('ld-qtl'))|| Math.round(totalBags*avgWt)/100;
-      const partyWt=parseFloat(V('ld-partywt'))||0;
-      const billQtl=partyWt>0?partyWt:Math.round(qtl*100)/100;
-      mv.buyerId=V('ld-buyer'); mv.rate=rate; mv.qtl=Math.round(qtl*100)/100; mv.partyWeight=partyWt;
-      mv.amount=Math.round(billQtl*rate); mv.status='sold';
-      mv.address=V('ld-address'); mv.unloadDate=V('ld-unload'); mv.dueDate=V('ld-due');
-    } else {
-      const gbags=parseInt(V('ld-gbags'))||totalBags;
-      const qtl=parseFloat(V('ld-gqtl'))|| Math.round(gbags*avgWt)/100;
-      mv.bags=gbags; mv.godownId=V('ld-godown'); mv.stackId=V('ld-stack'); mv.qtl=Math.round(qtl*100)/100; mv.status='instock'; mv.destination=V('ld-gdest');
-    }
-    if(existingMv){ const i=db.movements.findIndex(m=>m.id===existingMv.id); db.movements[i]=mv; }
-    else db.movements.push(mv);
-  } else if(existingMv){
-    db.movements=db.movements.filter(m=>m.id!==existingMv.id);
+  // purana auto movement(s) hata do (godown ab per-lot ho sakta hai → ek se zyada)
+  db.movements=db.movements.filter(m=>!(m.liftingId===rec.id && m.auto));
+  if(destKind==='sale'){
+    const rate=parseFloat(V('ld-rate'))||0;
+    const qtl=parseFloat(V('ld-qtl'))|| Math.round(totalBags*avgWt)/100;
+    const partyWt=parseFloat(V('ld-partywt'))||0;
+    const billQtl=partyWt>0?partyWt:Math.round(qtl*100)/100;
+    db.movements.push({ id:uid(), liftingId:rec.id, date:rec.date, kind:'sale', bags:totalBags, parentId:'', auto:true, note:'(lifting se auto)', createdAt:new Date().toISOString(),
+      buyerId:V('ld-buyer'), rate, qtl:Math.round(qtl*100)/100, partyWeight:partyWt, amount:Math.round(billQtl*rate), status:'sold',
+      address:V('ld-address'), unloadDate:V('ld-unload'), dueDate:V('ld-due') });
+  } else if(destKind==='godown'){
+    const gdest=V('ld-gdest');
+    // har lot ka apna godown+stack → alag movement (rate/grade exact rahega)
+    parties.forEach(pt=>pt.lots.forEach(({purchaseId,bags})=>{
+      const part=liftingPartiesState.find(p=>p.shopId===pt.shopId)||{};
+      const pl=(part.place||{})[purchaseId]||{};
+      // 1 bag = 50 kg = 0.5 qtl (poore app mein yahi basis — HARD RULE)
+      const qtl=Math.round(bags*0.5*100)/100;
+      db.movements.push({ id:uid(), liftingId:rec.id, date:rec.date, kind:'godown', bags, parentId:'', auto:true, note:'(lifting se auto)', createdAt:new Date().toISOString(),
+        purchaseId, shopId:pt.shopId, godownId:pl.godownId, stackId:pl.stackId, qtl, status:'instock', destination:gdest });
+    }));
   }
   saveDb(); renderAll(); closeModal('lifting-modal');
   clr('l-edit-id','l-gp','l-veh','l-driver','l-trans','l-dest','l-rem');
-  clr('ld-buyer','ld-address','ld-rate','ld-qtl','ld-partywt','ld-amount','ld-unload','ld-due','ld-godown','ld-stack','ld-gbags','ld-gqtl','ld-gdest');
+  clr('ld-buyer','ld-address','ld-rate','ld-qtl','ld-partywt','ld-amount','ld-unload','ld-due','ld-gdest');
   setLiftDest('none');
   liftingPartiesState=[];
   if(E('l-parties-chips')) E('l-parties-chips').innerHTML='';
@@ -2178,23 +2294,32 @@ function editLifting(id){
   const l=db.liftings.find(x=>x.id===id); if(!l) return;
   setV('l-edit-id',id);
   setV('l-date',l.date);setV('l-gp',l.gatepass);setV('l-veh',l.vehicle);setV('l-driver',l.driver||'');setV('l-trans',l.transporter||'');setV('l-dest',l.destination||'');setV('l-rem',l.remarks||'');
-  liftingPartiesState=liftingParties(l).map(p=>({shopId:p.shopId,sel:Object.fromEntries((p.lots||[]).map(x=>[x.purchaseId,x.bags]))}));
-  renderLiftingModalParties();
+  // per-lot godown placements (purchaseId → {godownId,stackId}) auto movements se load
+  const gMoves=db.movements.filter(m=>m.liftingId===l.id && m.auto && m.kind==='godown');
+  const placeByLot={};
+  let legacyPlace=null; // purana whole-lifting movement (bina purchaseId) → sab lots ka default
+  gMoves.forEach(m=>{ if(m.purchaseId) placeByLot[m.purchaseId]={godownId:m.godownId||'',stackId:m.stackId||''}; else if(m.godownId) legacyPlace={godownId:m.godownId||'',stackId:m.stackId||''}; });
+  liftingPartiesState=liftingParties(l).map(p=>({
+    shopId:p.shopId,
+    sel:Object.fromEntries((p.lots||[]).map(x=>[x.purchaseId,x.bags])),
+    place:Object.fromEntries((p.lots||[]).map(x=>[x.purchaseId,placeByLot[x.purchaseId]||legacyPlace||{}]).filter(e=>e[1].godownId))
+  }));
   // load linked auto Sale/Godown movement (if any)
-  clr('ld-buyer','ld-address','ld-rate','ld-qtl','ld-partywt','ld-amount','ld-unload','ld-due','ld-godown','ld-stack','ld-gbags','ld-gqtl','ld-gdest');
+  clr('ld-buyer','ld-address','ld-rate','ld-qtl','ld-partywt','ld-amount','ld-unload','ld-due','ld-gdest');
   refreshLiftingDestSelects();
-  const mv=db.movements.find(m=>m.liftingId===l.id && m.auto);
-  if(mv && (mv.kind==='sale'||mv.kind==='godown')){
-    setLiftDest(mv.kind);
-    if(mv.kind==='sale'){
-      setV('ld-buyer',mv.buyerId||''); onLiftDestBuyerChange();
-      if(mv.address) setV('ld-address',mv.address);
-      setV('ld-rate',mv.rate||''); setV('ld-qtl',mv.qtl||''); setV('ld-partywt',mv.partyWeight||''); setV('ld-unload',mv.unloadDate||''); setV('ld-due',mv.dueDate||'');
-      calcLiftDest();
-    } else {
-      setV('ld-godown',mv.godownId||''); populateLiftingDestStacks(); setV('ld-stack',mv.stackId||''); setV('ld-gbags',mv.bags||''); setV('ld-gqtl',mv.qtl||''); setV('ld-gdest',mv.destination||'');
-    }
+  const saleMv=db.movements.find(m=>m.liftingId===l.id && m.auto && m.kind==='sale');
+  const godMv=gMoves[0];
+  if(saleMv){
+    setLiftDest('sale');
+    setV('ld-buyer',saleMv.buyerId||''); onLiftDestBuyerChange();
+    if(saleMv.address) setV('ld-address',saleMv.address);
+    setV('ld-rate',saleMv.rate||''); setV('ld-qtl',saleMv.qtl||''); setV('ld-partywt',saleMv.partyWeight||''); setV('ld-unload',saleMv.unloadDate||''); setV('ld-due',saleMv.dueDate||'');
+    calcLiftDest();
+  } else if(godMv){
+    setV('ld-gdest',godMv.destination||'');
+    setLiftDest('godown'); // ye renderLiftingModalParties bhi call karega (place ke saath rows)
   } else { setLiftDest('none'); }
+  renderLiftingModalParties();
   if(E('lifting-modal-title')) E('lifting-modal-title').textContent='✏️ Lifting Edit';
   openModal('lifting-modal');
 }
@@ -2264,7 +2389,9 @@ function setLiftDest(kind){
   [['ld-kind-none','none'],['ld-kind-sale','sale'],['ld-kind-godown','godown']].forEach(([id,k])=>{ const b=E(id); if(b){ b.className='btn '+(kind===k?'btn-blue':'btn-ghost'); b.style.flex='1'; b.style.minWidth='120px'; } });
   const autoQ=Math.round(liftSelBags()*liftSelAvgWt())/100;
   if(kind==='sale'){ refreshLiftingDestSelects(); if(!V('ld-qtl')&&autoQ) setV('ld-qtl',autoQ); if(!V('ld-unload')) setV('ld-unload',V('l-date')); calcLiftDest(); }
-  if(kind==='godown'){ refreshLiftingDestSelects(); if(!V('ld-gbags')&&liftSelBags()) setV('ld-gbags',liftSelBags()); if(!V('ld-gqtl')&&autoQ) setV('ld-gqtl',autoQ); if(!V('ld-gdest')) setV('ld-gdest',V('l-dest')); }
+  if(kind==='godown'){ refreshLiftingDestSelects(); if(!V('ld-gdest')) setV('ld-gdest',V('l-dest')); }
+  // godown <-> dusra mode badalne par lot rows dobara render (per-lot godown+stack dikhane/chhupane ke liye)
+  renderLiftingModalParties();
 }
 
 const bulkCfg={
@@ -2636,12 +2763,16 @@ function renderLiftingTable(){
     return {...l,shopName:names,totalBags,allLots,_st:getLiftingRowStatus(l)};
   });
   const fShop=V('lf-shop'),fFrom=V('lf-from'),fTo=V('lf-to'),fGP=(V('lf-gp')||'').toLowerCase(),fVeh=(V('lf-veh')||'').toLowerCase(),fSt=V('lf-status'),fq=(V('lf-search')||'').toLowerCase();
+  const fGrade=V('lf-grade'),fGodown=V('lf-godown'),fStack=V('lf-stack');
   if(fShop) data=data.filter(l=>liftingParties(l).some(p=>p.shopId===fShop));
   if(fFrom) data=data.filter(l=>l.date>=fFrom);
   if(fTo) data=data.filter(l=>l.date<=fTo);
   if(fGP) data=data.filter(l=>(l.gatepass||'').toLowerCase().includes(fGP));
   if(fVeh) data=data.filter(l=>(l.vehicle||'').toLowerCase().includes(fVeh));
   if(fSt) data=data.filter(l=>l._st===fSt);
+  if(fGrade) data=data.filter(l=>(l.allLots||l.lots||[]).some(x=>{const p=db.purchases.find(y=>y.id===x.purchaseId);return p&&(p.grade||'')===fGrade;}));
+  if(fGodown) data=data.filter(l=>db.movements.some(m=>m.liftingId===l.id&&m.kind==='godown'&&m.godownId===fGodown));
+  if(fStack) data=data.filter(l=>db.movements.some(m=>m.liftingId===l.id&&m.kind==='godown'&&m.stackId===fStack));
   if(fq) data=data.filter(l=>rowMatchesSearch({date:l.date,shops:l.shopName,gate:l.gatepass,veh:l.vehicle,driver:l.driver,trans:l.transporter,dest:l.destination,remarks:l.remarks,total:l.totalBags},fq));
   if(!sortState.lifting) sortState.lifting={key:'date',dir:'desc'};
   data=applySortToData(data,'lifting');
@@ -4180,7 +4311,7 @@ function clearFilter(section){
   if(section==='shops'){ clr('sf-search','sf-loc'); renderShops(); }
   if(section==='bardana'){ clr('bf-shop','bf-type','bf-from','bf-to','bf-status','bf-search'); renderBardanaTable(); }
   if(section==='purchase'){ clr('pf-shop','pf-from','pf-to','pf-rate-min','pf-rate-max','pf-grade','pf-status','pf-bill','pf-search'); renderPurchaseTable(); }
-  if(section==='lifting'){ clr('lf-shop','lf-from','lf-to','lf-gp','lf-veh','lf-status','lf-search'); renderLiftingTable(); }
+  if(section==='lifting'){ clr('lf-shop','lf-from','lf-to','lf-gp','lf-veh','lf-grade','lf-godown','lf-stack','lf-status','lf-search'); populateLfStack(); renderLiftingTable(); }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4287,16 +4418,19 @@ function deleteGodown(id){
 function renderGodowns(){
   const tb=E('godowns-tbody'); if(!tb) return;
   const cnt=E('godowns-count'); if(cnt) cnt.textContent=db.godowns.length;
-  if(!db.godowns.length){ tb.innerHTML='<tr><td colspan="6"><div class="empty" style="padding:24px"><div class="ei">🏬</div><p>Koi Godown nahi. "Naya Godown" se add karein.</p></div></td></tr>'; return; }
+  if(!db.godowns.length){ tb.innerHTML='<tr><td colspan="8"><div class="empty" style="padding:24px"><div class="ei">🏬</div><p>Koi Godown nahi. "Naya Godown" se add karein.</p></div></td></tr>'; return; }
   tb.innerHTML=db.godowns.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(g=>{
     const stk=db.stacks.filter(s=>s.godownId===g.id).length;
+    const t=godownStockTotals(g.id);
     return `<tr>
-      <td><strong>${escHtmlSafe(g.name)}</strong></td>
+      <td><strong style="color:var(--blue);cursor:pointer" onclick="openGodownDetail('${g.id}')">${escHtmlSafe(g.name)} 🔍</strong></td>
       <td>${escHtmlSafe(g.place)||'-'}</td>
       <td>${g.capacity?fmt(g.capacity):'-'}</td>
       <td>${escHtmlSafe(g.incharge)||'-'}</td>
       <td><span class="badge badge-blue">${stk} stack</span></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="editGodown('${g.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteGodown('${g.id}')">🗑️</button></td>
+      <td style="text-align:right;font-weight:700;color:var(--orange)">${fmt(t.bags)}</td>
+      <td style="text-align:right;font-weight:700;color:var(--blue2)">${fmtQtl(t.qtl)}</td>
+      <td><button class="btn btn-blue btn-sm" onclick="openGodownDetail('${g.id}')">👁️ Detail</button> <button class="btn btn-ghost btn-sm" onclick="editGodown('${g.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteGodown('${g.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
 }
@@ -4340,14 +4474,19 @@ function deleteStack(id){
 function renderStacks(){
   const tb=E('stacks-tbody'); if(!tb) return;
   const cnt=E('stacks-count'); if(cnt) cnt.textContent=db.stacks.length;
-  if(!db.stacks.length){ tb.innerHTML='<tr><td colspan="5"><div class="empty" style="padding:24px"><div class="ei">🗄️</div><p>Koi Stack nahi. Godown banakar uske andar Stack add karein.</p></div></td></tr>'; return; }
-  tb.innerHTML=db.stacks.slice().sort((a,b)=>(getGodownName(a.godownId)+a.name).localeCompare(getGodownName(b.godownId)+b.name)).map(s=>`<tr>
-    <td><strong>${escHtmlSafe(s.name)}</strong></td>
+  if(!db.stacks.length){ tb.innerHTML='<tr><td colspan="7"><div class="empty" style="padding:24px"><div class="ei">🗄️</div><p>Koi Stack nahi. Godown banakar uske andar Stack add karein.</p></div></td></tr>'; return; }
+  tb.innerHTML=db.stacks.slice().sort((a,b)=>(getGodownName(a.godownId)+a.name).localeCompare(getGodownName(b.godownId)+b.name)).map(s=>{
+    const t=stackStockTotals(s.id);
+    return `<tr>
+    <td><strong style="color:var(--blue);cursor:pointer" onclick="openStackSummary('${s.id}')">${escHtmlSafe(s.name)} 🔍</strong></td>
     <td><span class="badge badge-blue">${escHtmlSafe(getGodownName(s.godownId))}</span></td>
     <td>${s.capacity?fmt(s.capacity):'-'}</td>
+    <td style="text-align:right;font-weight:700;color:var(--orange)">${fmt(t.bags)}</td>
+    <td style="text-align:right;font-weight:700;color:var(--blue2)">${fmtQtl(t.qtl)}</td>
     <td>${escHtmlSafe(s.note)||'-'}</td>
-    <td><button class="btn btn-ghost btn-sm" onclick="editStack('${s.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteStack('${s.id}')">🗑️</button></td>
-  </tr>`).join('');
+    <td><button class="btn btn-blue btn-sm" onclick="openStackSummary('${s.id}')">👁️ Summary</button> <button class="btn btn-ghost btn-sm" onclick="editStack('${s.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteStack('${s.id}')">🗑️</button></td>
+  </tr>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4369,6 +4508,105 @@ function gaddiRemainingBags(l,excludeId){ return getGaddiBags(l)-gaddiConsumedBa
 function gaddiLabel(l){ return (l.gatepass||'GP?')+' · '+(l.vehicle||'')+' · '+(l.date||''); }
 function gaddiArtiyas(l){ return [...new Set(liftingParties(l).map(p=>getShopName(p.shopId)))].join(', '); }
 function movementGaddi(){ const id=V('mv-gaddi'); return db.liftings.find(l=>l.id===id); }
+
+// ── STACK / GODOWN STOCK HELPERS (rate-wise breakdown) ──
+// Ek godown-movement ko uske rate-wise lots me todta hai (kis rate ka kitna maal)
+// movement ke ACTUAL bags+qtl ko bag-proportion se baanta jaata hai (total exact match rehta hai)
+function movementRateLots(m){
+  const l=db.liftings.find(x=>x.id===m.liftingId);
+  const mBags=+m.bags||0, mQtl=+m.qtl||0, gp=(l&&l.gatepass)||'';
+  // NAYA per-lot movement: purchaseId hai → bilkul exact ek hi rate/grade (koi proportional smear nahi)
+  if(m.purchaseId){
+    const pu=db.purchases.find(y=>y.id===m.purchaseId);
+    return [{rate:(pu&&pu.rate)||0,artiya:getShopName(m.shopId||(pu&&pu.shopId)),grade:(pu&&pu.grade)||'',bags:mBags,qtl:mQtl,gp,date:m.date}];
+  }
+  // PURANA whole-lifting movement: bag-proportion se baanto (backward compat)
+  if(!l) return [{rate:0,artiya:'-',grade:'',bags:mBags,qtl:mQtl,gp,date:m.date}];
+  const lots=[];
+  liftingParties(l).forEach(p=>(p.lots||[]).forEach(x=>{
+    const pu=db.purchases.find(y=>y.id===x.purchaseId); if(!pu) return;
+    lots.push({rate:pu.rate||0,artiya:getShopName(p.shopId),grade:pu.grade||'',bags:parseInt(x.bags)||0});
+  }));
+  const gTot=lots.reduce((s,x)=>s+x.bags,0);
+  if(!lots.length||!gTot) return [{rate:0,artiya:gaddiArtiyas(l)||'-',grade:'',bags:mBags,qtl:mQtl,gp,date:m.date}];
+  return lots.map(x=>{ const frac=x.bags/gTot; return {rate:x.rate,artiya:x.artiya,grade:x.grade,bags:Math.round(mBags*frac),qtl:mQtl*frac,gp,date:m.date}; });
+}
+// Ek stack ka rate-wise summary — {rows:[{rate,artiya,grade,bags,qtl,gps}], totBags, totQtl, moves}
+function stackRateBreakdown(stackId){
+  const moves=db.movements.filter(m=>m.kind==='godown'&&m.stackId===stackId);
+  const byRate={};
+  moves.forEach(m=>movementRateLots(m).forEach(p=>{
+    const k=p.rate; if(!byRate[k]) byRate[k]={rate:p.rate,bags:0,qtl:0,artiyas:new Set(),grades:new Set(),gps:new Set()};
+    byRate[k].bags+=p.bags; byRate[k].qtl+=p.qtl;
+    if(p.artiya)byRate[k].artiyas.add(p.artiya); if(p.grade)byRate[k].grades.add(p.grade); if(p.gp)byRate[k].gps.add(p.gp);
+  }));
+  const rows=Object.values(byRate).sort((a,b)=>b.rate-a.rate);
+  return {rows,totBags:rows.reduce((s,r)=>s+r.bags,0),totQtl:rows.reduce((s,r)=>s+r.qtl,0),moves:moves.length};
+}
+function godownStockTotals(godownId){
+  const moves=db.movements.filter(m=>m.kind==='godown'&&m.godownId===godownId);
+  return {bags:moves.reduce((s,m)=>s+(+m.bags||0),0),qtl:moves.reduce((s,m)=>s+(+m.qtl||0),0)};
+}
+function stackStockTotals(stackId){
+  const moves=db.movements.filter(m=>m.kind==='godown'&&m.stackId===stackId);
+  return {bags:moves.reduce((s,m)=>s+(+m.bags||0),0),qtl:moves.reduce((s,m)=>s+(+m.qtl||0),0)};
+}
+
+// ── STACK A-to-Z SUMMARY MODAL ──
+function openStackSummary(stackId){
+  const s=db.stacks.find(x=>x.id===stackId); if(!s) return;
+  const {rows,totBags,totQtl,moves}=stackRateBreakdown(stackId);
+  const body=E('stack-summary-body'); if(!body) return;
+  E('stack-summary-title').innerHTML=`🗄️ Stack: ${escHtmlSafe(s.name)} <span style="font-weight:400;color:var(--text3)">(${escHtmlSafe(getGodownName(s.godownId))})</span>`;
+  let html=rKpiRow([['Total Bags',fmt(totBags),'var(--orange)'],['Total Weight (Qtl)',fmtQtl(totQtl),'var(--blue2)'],['Rate Levels',fmt(rows.length),'var(--purple)'],['Entries',fmt(moves)]]);
+  if(!rows.length){
+    html+='<div class="empty" style="padding:24px"><div class="ei">📦</div><p>Is stack mein abhi koi maal nahi laga.</p></div>';
+  }else{
+    html+=`<div class="tw"><div class="th2"><div class="ttl">📊 Rate-wise Maal</div><div style="font-weight:800;color:var(--orange)">${fmt(totBags)} bags · ${fmtQtl(totQtl)} qtl</div></div><div class="tsc"><table>
+      <thead><tr><th>Rate (₹/Qtl)</th><th>Artiya (maal)</th><th>Grade</th><th style="text-align:right">Bags</th><th style="text-align:right">Weight (Qtl)</th><th>Gaddi (Gate Pass)</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td style="font-weight:800;color:var(--orange)">₹${fmt(r.rate)}</td>
+        <td class="wrapcell">${escHtmlSafe([...r.artiyas].join(', ')||'-')}</td>
+        <td>${escHtmlSafe([...r.grades].join(', ')||'-')}</td>
+        <td style="text-align:right;font-weight:700;color:var(--blue2)">${fmt(r.bags)}</td>
+        <td style="text-align:right;font-weight:700;color:var(--green)">${fmtQtl(r.qtl)}</td>
+        <td class="wrapcell" style="color:var(--text3)">${escHtmlSafe([...r.gps].join(', ')||'-')}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr style="font-weight:800;background:var(--surface2)"><td colspan="3">TOTAL</td><td style="text-align:right">${fmt(totBags)}</td><td style="text-align:right">${fmtQtl(totQtl)}</td><td></td></tr></tfoot>
+    </table></div></div>`;
+  }
+  body.innerHTML=html;
+  openModal('stack-summary-modal');
+}
+
+// ── GODOWN DETAIL MODAL (sare stacks ka werwa) ──
+function openGodownDetail(godownId){
+  const g=db.godowns.find(x=>x.id===godownId); if(!g) return;
+  const stacks=db.stacks.filter(s=>s.godownId===godownId).sort((a,b)=>a.name.localeCompare(b.name));
+  const gt=godownStockTotals(godownId);
+  const body=E('godown-detail-body'); if(!body) return;
+  E('godown-detail-title').innerHTML=`🏬 ${escHtmlSafe(g.name)} <span style="font-weight:400;color:var(--text3)">${g.place?'· '+escHtmlSafe(g.place):''}</span>`;
+  let html=rKpiRow([['Stacks',fmt(stacks.length),'var(--purple)'],['Total Bags',fmt(gt.bags),'var(--orange)'],['Total Weight (Qtl)',fmtQtl(gt.qtl),'var(--blue2)'],['Capacity',g.capacity?fmt(g.capacity):'-']]);
+  if(!stacks.length){
+    html+='<div class="empty" style="padding:24px"><div class="ei">🗄️</div><p>Is godown mein koi stack nahi. "Naya Stack" se add karein.</p></div>';
+  }else{
+    stacks.forEach(s=>{
+      const {rows,totBags,totQtl}=stackRateBreakdown(s.id);
+      html+=`<div class="tw"><div class="th2"><div class="ttl" style="cursor:pointer" onclick="closeModal('godown-detail-modal');openStackSummary('${s.id}')">🗄️ ${escHtmlSafe(s.name)} <span style="font-size:11px;color:var(--blue)">(detail →)</span></div><div style="font-weight:800;color:var(--orange)">${fmt(totBags)} bags · ${fmtQtl(totQtl)} qtl</div></div><div class="tsc"><table>
+        <thead><tr><th>Rate (₹/Qtl)</th><th>Artiya</th><th>Grade</th><th style="text-align:right">Bags</th><th style="text-align:right">Weight (Qtl)</th></tr></thead>
+        <tbody>${rows.length?rows.map(r=>`<tr>
+          <td style="font-weight:800;color:var(--orange)">₹${fmt(r.rate)}</td>
+          <td class="wrapcell">${escHtmlSafe([...r.artiyas].join(', ')||'-')}</td>
+          <td>${escHtmlSafe([...r.grades].join(', ')||'-')}</td>
+          <td style="text-align:right;font-weight:700;color:var(--blue2)">${fmt(r.bags)}</td>
+          <td style="text-align:right;font-weight:700;color:var(--green)">${fmtQtl(r.qtl)}</td>
+        </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:12px">Khaali stack</td></tr>'}</tbody>
+      </table></div></div>`;
+    });
+  }
+  body.innerHTML=html;
+  openModal('godown-detail-modal');
+}
 
 function populateMovementGaddis(presetId){
   const el=E('mv-gaddi'); if(!el) return;
@@ -4683,19 +4921,8 @@ function renderProfitReport(fShop,fFrom,fTo){
 function renderGodownStockReport(fShop,fFrom,fTo){
   const gmoves=reportMovements(fShop,fFrom,fTo).filter(m=>m.kind==='godown');
   if(!gmoves.length) return rEmpty('🏬','Godown mein koi maal nahi. "Sale / Godown" tab se godown entry karein.');
-  // ek movement ko uske rate-wise lots me toda (kis rate ka kitna maal)
-  function moveLots(m){
-    const l=mvLifting(m); const mBags=+m.bags||0, mQtl=+m.qtl||0, gp=l.gatepass||'';
-    const lots=[];
-    liftingParties(l).forEach(p=>(p.lots||[]).forEach(x=>{
-      const pu=db.purchases.find(y=>y.id===x.purchaseId); if(!pu) return;
-      lots.push({rate:pu.rate||0,artiya:getShopName(p.shopId),bags:parseInt(x.bags)||0});
-    }));
-    const gTot=lots.reduce((s,x)=>s+x.bags,0);
-    if(!lots.length||!gTot) return [{rate:0,artiya:gaddiArtiyas(l)||'-',bags:mBags,qtl:mQtl,gp,date:m.date}];
-    // movement ke actual bags + qtl ko rate-wise bag-proportion se baanto (total bilkul match rahe)
-    return lots.map(x=>{ const frac=x.bags/gTot; return {rate:x.rate,artiya:x.artiya,bags:Math.round(mBags*frac),qtl:mQtl*frac,gp,date:m.date}; });
-  }
+  // ek movement ko uske rate-wise lots me toda (global helper — per-lot exact, ya purana proportional)
+  const moveLots=movementRateLots;
   const totBags=gmoves.reduce((s,m)=>s+(+m.bags||0),0), totQtl=gmoves.reduce((s,m)=>s+(+m.qtl||0),0);
   const godowns={};
   gmoves.forEach(m=>{ const g=m.godownId||'?'; (godowns[g]=godowns[g]||{}); const st=m.stackId||'?'; (godowns[g][st]=godowns[g][st]||[]).push(m); });
