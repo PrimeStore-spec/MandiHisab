@@ -913,6 +913,15 @@ main{max-width:100%;padding:12px 10px;}
   </div>
 </div>
 
+<!-- STACK ENTRY DETAIL MODAL (ek gaddi ka party/rate-wise werwa) -->
+<div class="ov" id="stack-entry-modal">
+  <div class="modal-box modal-lg">
+    <div class="mh"><div class="mt" id="stack-entry-title">👁️ Entry Detail</div><button class="mx" onclick="closeModal('stack-entry-modal')">✕</button></div>
+    <div class="mb" id="stack-entry-body"></div>
+    <div class="mf"><div></div><div><button class="btn btn-ghost" onclick="closeModal('stack-entry-modal')">Band Karein</button></div></div>
+  </div>
+</div>
+
 <!-- MOVEMENT MODAL (Sale / Godown) -->
 <div class="ov" id="movement-modal">
   <div class="modal-box modal-lg">
@@ -1494,6 +1503,8 @@ const fmt=n=>Number(n||0).toLocaleString('en-IN');
 // Quintal: HAMESHA 2 decimal, kabhi round-off nahi (e.g. 2122.50, 95.50)
 const fmtQtl=n=>(Math.round((Number(n)||0)*100)/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtSigned=n=>{const v=Number(n)||0;if(v<0)return '-'+fmt(Math.abs(v));return fmt(v);};
+// ISO date (YYYY-MM-DD) → DD-MM-YYYY for display; passes through anything else
+const fmtDate=d=>{ if(!d) return '-'; const m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}-${m[2]}-${m[1]}`:String(d); };
 const rupee=n=>'₹'+fmt(n);
 const V=id=>(document.getElementById(id)||{}).value||'';
 const E=id=>document.getElementById(id);
@@ -2255,8 +2266,9 @@ function saveLifting(){
   // ── auto Sale/Godown movement(s) linked to this lifting ──
   const totalBags=allLots.reduce((s,x)=>s+x.bags,0);
   const avgWt=liftSelAvgWt();
-  // purana auto movement(s) hata do (godown ab per-lot ho sakta hai → ek se zyada)
-  db.movements=db.movements.filter(m=>!(m.liftingId===rec.id && m.auto));
+  // purane movement hata do: is lifting ke saare AUTO movement + koi bhi MANUAL godown placement (bina parentId)
+  // (warna purana manual godown record + naya per-lot record dono ginne par double-count hota tha)
+  db.movements=db.movements.filter(m=>!(m.liftingId===rec.id && (m.auto || (m.kind==='godown' && !m.parentId))));
   if(destKind==='sale'){
     const rate=parseFloat(V('ld-rate'))||0;
     const qtl=parseFloat(V('ld-qtl'))|| Math.round(totalBags*avgWt)/100;
@@ -4509,6 +4521,43 @@ function gaddiLabel(l){ return (l.gatepass||'GP?')+' · '+(l.vehicle||'')+' · '
 function gaddiArtiyas(l){ return [...new Set(liftingParties(l).map(p=>getShopName(p.shopId)))].join(', '); }
 function movementGaddi(){ const id=V('mv-gaddi'); return db.liftings.find(l=>l.id===id); }
 
+// ── DUPLICATE GODOWN MOVEMENT CLEANUP ──
+// Purane data me kuch liftings ke do-do godown record the (purana manual + naya per-lot) → double count.
+// Ye har lifting ke godown movements ko uske actual bags se zyada hone par redundant ko hata deta hai.
+// commit=false → sirf list lautata hai (dry run); commit=true → delete + saveDb.
+function cleanupGodownDuplicates(commit){
+  const byLift={};
+  db.movements.forEach(m=>{ if(m.kind==='godown'&&!m.parentId){ (byLift[m.liftingId]=byLift[m.liftingId]||[]).push(m); } });
+  const removed=[];
+  Object.entries(byLift).forEach(([lid,moves])=>{
+    const l=db.liftings.find(x=>x.id===lid); if(!l) return;
+    const liftBags=getGaddiBags(l);
+    const total=moves.reduce((s,m)=>s+(+m.bags||0),0);
+    if(total<=liftBags+0.001) return; // theek hai
+    const perlot=moves.filter(m=>m.purchaseId);
+    const noPid=moves.filter(m=>!m.purchaseId);
+    let toRemove=[];
+    const perlotBags=perlot.reduce((s,m)=>s+(+m.bags||0),0);
+    if(perlot.length && perlotBags>=liftBags-0.001){
+      // per-lot poora maal cover karta hai → saare no-pid (purane whole/manual) hata do
+      toRemove=noPid;
+    } else {
+      // per-lot rakho, phir auto-no-pid ko prefer karte hue liftBags tak rakho, baaki hatao
+      const sorted=noPid.slice().sort((a,b)=>(b.auto?1:0)-(a.auto?1:0));
+      let kept=perlotBags; const keepSet=new Set();
+      for(const m of sorted){ if(kept>=liftBags-0.001) break; keepSet.add(m.id); kept+=(+m.bags||0); }
+      toRemove=noPid.filter(m=>!keepSet.has(m.id));
+    }
+    toRemove.forEach(m=>removed.push({id:m.id,gp:l.gatepass,bags:+m.bags||0,auto:!!m.auto,perlot:!!m.purchaseId,stack:getStackName(m.stackId)}));
+  });
+  if(commit){
+    const ids=new Set(removed.map(r=>r.id));
+    db.movements=db.movements.filter(m=>!ids.has(m.id));
+    saveDb(); renderAll();
+  }
+  return removed;
+}
+
 // ── STACK / GODOWN STOCK HELPERS (rate-wise breakdown) ──
 // Ek godown-movement ko uske rate-wise lots me todta hai (kis rate ka kitna maal)
 // movement ke ACTUAL bags+qtl ko bag-proportion se baanta jaata hai (total exact match rehta hai)
@@ -4552,31 +4601,91 @@ function stackStockTotals(stackId){
   return {bags:moves.reduce((s,m)=>s+(+m.bags||0),0),qtl:moves.reduce((s,m)=>s+(+m.qtl||0),0)};
 }
 
-// ── STACK A-to-Z SUMMARY MODAL ──
+// ── Ek stack ki entry-wise list (har gaddi/lifting = ek entry) ──
+// rows:[{liftingId,date,bags,qtl,artiyas:[],grades:[],gp}]
+function stackEntries(stackId){
+  const moves=db.movements.filter(m=>m.kind==='godown'&&m.stackId===stackId);
+  const byLift={};
+  moves.forEach(m=>{
+    const k=m.liftingId||('_'+m.id);
+    if(!byLift[k]){
+      const l=db.liftings.find(x=>x.id===m.liftingId);
+      byLift[k]={liftingId:m.liftingId,date:m.date,gp:(l&&l.gatepass)||'',bags:0,qtl:0,artiyas:new Set(),grades:new Set()};
+    }
+    const e=byLift[k];
+    e.bags+=(+m.bags||0); e.qtl+=(+m.qtl||0);
+    if(!e.date) e.date=m.date;
+    movementRateLots(m).forEach(p=>{ if(p.artiya)e.artiyas.add(p.artiya); if(p.grade)e.grades.add(p.grade); });
+  });
+  const rows=Object.values(byLift).map(e=>({...e,artiyas:[...e.artiyas],grades:[...e.grades]}))
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  return {rows,totBags:rows.reduce((s,r)=>s+r.bags,0),totQtl:rows.reduce((s,r)=>s+r.qtl,0)};
+}
+// ── Ek stack par ek gaddi ka party/rate-wise werwa ──
+function stackEntryDetail(stackId,liftingId){
+  const moves=db.movements.filter(m=>m.kind==='godown'&&m.stackId===stackId&&m.liftingId===liftingId);
+  const byKey={};
+  moves.forEach(m=>movementRateLots(m).forEach(p=>{
+    const k=(p.artiya||'')+'|'+p.rate+'|'+(p.grade||'');
+    if(!byKey[k]) byKey[k]={date:p.date||m.date,artiya:p.artiya||'-',rate:p.rate||0,grade:p.grade||'',bags:0,qtl:0};
+    byKey[k].bags+=p.bags; byKey[k].qtl+=p.qtl;
+  }));
+  const rows=Object.values(byKey).sort((a,b)=>b.rate-a.rate);
+  return {rows,totBags:rows.reduce((s,r)=>s+r.bags,0),totQtl:rows.reduce((s,r)=>s+r.qtl,0)};
+}
+
+// ── STACK A-to-Z SUMMARY MODAL (entry-wise) ──
 function openStackSummary(stackId){
   const s=db.stacks.find(x=>x.id===stackId); if(!s) return;
-  const {rows,totBags,totQtl,moves}=stackRateBreakdown(stackId);
+  const {rows,totBags,totQtl}=stackEntries(stackId);
   const body=E('stack-summary-body'); if(!body) return;
   E('stack-summary-title').innerHTML=`🗄️ Stack: ${escHtmlSafe(s.name)} <span style="font-weight:400;color:var(--text3)">(${escHtmlSafe(getGodownName(s.godownId))})</span>`;
-  let html=rKpiRow([['Total Bags',fmt(totBags),'var(--orange)'],['Total Weight (Qtl)',fmtQtl(totQtl),'var(--blue2)'],['Rate Levels',fmt(rows.length),'var(--purple)'],['Entries',fmt(moves)]]);
+  let html=rKpiRow([['Total Bags',fmt(totBags),'var(--orange)'],['Total Weight (Qtl)',fmtQtl(totQtl),'var(--blue2)'],['Entries',fmt(rows.length),'var(--purple)']]);
   if(!rows.length){
     html+='<div class="empty" style="padding:24px"><div class="ei">📦</div><p>Is stack mein abhi koi maal nahi laga.</p></div>';
   }else{
-    html+=`<div class="tw"><div class="th2"><div class="ttl">📊 Rate-wise Maal</div><div style="font-weight:800;color:var(--orange)">${fmt(totBags)} bags · ${fmtQtl(totQtl)} qtl</div></div><div class="tsc"><table>
-      <thead><tr><th>Rate (₹/Qtl)</th><th>Artiya (maal)</th><th>Grade</th><th style="text-align:right">Bags</th><th style="text-align:right">Weight (Qtl)</th><th>Gaddi (Gate Pass)</th></tr></thead>
+    html+=`<div class="tw"><div class="th2"><div class="ttl">📋 Entry-wise Maal</div><div style="font-weight:800;color:var(--orange)">${fmt(totBags)} bags · ${fmtQtl(totQtl)} qtl</div></div><div class="tsc"><table>
+      <thead><tr><th>Date</th><th>Party Name</th><th style="text-align:right">Total Bags</th><th>Grade</th><th style="text-align:right">Weight</th><th style="text-align:center">Detail</th></tr></thead>
       <tbody>${rows.map(r=>`<tr>
-        <td style="font-weight:800;color:var(--orange)">₹${fmt(r.rate)}</td>
-        <td class="wrapcell">${escHtmlSafe([...r.artiyas].join(', ')||'-')}</td>
-        <td>${escHtmlSafe([...r.grades].join(', ')||'-')}</td>
+        <td style="white-space:nowrap">${escHtmlSafe(fmtDate(r.date))}</td>
+        <td class="wrapcell">${escHtmlSafe(r.artiyas.join(', ')||'-')}</td>
         <td style="text-align:right;font-weight:700;color:var(--blue2)">${fmt(r.bags)}</td>
+        <td>${escHtmlSafe(r.grades.join(', ')||'-')}</td>
         <td style="text-align:right;font-weight:700;color:var(--green)">${fmtQtl(r.qtl)}</td>
-        <td class="wrapcell" style="color:var(--text3)">${escHtmlSafe([...r.gps].join(', ')||'-')}</td>
+        <td style="text-align:center">${r.liftingId?`<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="openStackEntryDetail('${stackId}','${r.liftingId}')">👁️ Detail</button>`:'-'}</td>
       </tr>`).join('')}</tbody>
-      <tfoot><tr style="font-weight:800;background:var(--surface2)"><td colspan="3">TOTAL</td><td style="text-align:right">${fmt(totBags)}</td><td style="text-align:right">${fmtQtl(totQtl)}</td><td></td></tr></tfoot>
+      <tfoot><tr style="font-weight:800;background:var(--surface2)"><td colspan="2">TOTAL</td><td style="text-align:right">${fmt(totBags)}</td><td></td><td style="text-align:right">${fmtQtl(totQtl)}</td><td></td></tr></tfoot>
     </table></div></div>`;
   }
   body.innerHTML=html;
   openModal('stack-summary-modal');
+}
+// ── ENTRY DRILL-DOWN: ek gaddi ka party/rate-wise werwa ──
+function openStackEntryDetail(stackId,liftingId){
+  const s=db.stacks.find(x=>x.id===stackId); if(!s) return;
+  const l=db.liftings.find(x=>x.id===liftingId);
+  const {rows,totBags,totQtl}=stackEntryDetail(stackId,liftingId);
+  const body=E('stack-entry-body'); if(!body) return;
+  const dt=rows.length?rows[0].date:(l&&l.date);
+  E('stack-entry-title').innerHTML=`👁️ Entry Detail <span style="font-weight:400;color:var(--text3)">· ${escHtmlSafe(s.name)}${l&&l.gatepass?(' · GP '+escHtmlSafe(l.gatepass)):''}</span>`;
+  let html=rKpiRow([['Date',escHtmlSafe(fmtDate(dt)),'var(--text2)'],['Total Bags',fmt(totBags),'var(--orange)'],['Total Weight',fmtQtl(totQtl),'var(--green)']]);
+  if(!rows.length){
+    html+='<div class="empty" style="padding:24px"><div class="ei">📦</div><p>Koi werwa nahi mila.</p></div>';
+  }else{
+    html+=`<div class="tw"><div class="tsc"><table>
+      <thead><tr><th>Date</th><th>Party Name</th><th style="text-align:right">Rate</th><th style="text-align:right">Bags</th><th style="text-align:right">Weight</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td style="white-space:nowrap">${escHtmlSafe(fmtDate(r.date))}</td>
+        <td class="wrapcell">${escHtmlSafe(r.artiya)}${r.grade?` <span style="font-size:11px;color:var(--text3)">(${escHtmlSafe(r.grade)})</span>`:''}</td>
+        <td style="text-align:right;font-weight:800;color:var(--orange)">₹${fmt(r.rate)}</td>
+        <td style="text-align:right;font-weight:700;color:var(--blue2)">${fmt(r.bags)}</td>
+        <td style="text-align:right;font-weight:700;color:var(--green)">${fmtQtl(r.qtl)}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr style="font-weight:800;background:var(--surface2)"><td colspan="3">TOTAL</td><td style="text-align:right">${fmt(totBags)}</td><td style="text-align:right">${fmtQtl(totQtl)}</td></tr></tfoot>
+    </table></div></div>`;
+  }
+  body.innerHTML=html;
+  openModal('stack-entry-modal');
 }
 
 // ── GODOWN DETAIL MODAL (sare stacks ka werwa) ──
