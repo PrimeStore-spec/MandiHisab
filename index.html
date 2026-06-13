@@ -3632,6 +3632,13 @@ function portalSetAllGrade(g){ if(g==='') return; portalFilteredRows().forEach(r
 function portalSetAllBill(b){ if(b==='') return; portalFilteredRows().forEach(r=>r.bill=b); if(E('portal-allbill')) E('portal-allbill').value=''; renderPortalPreview(); }
 function portalRowGrade(i,g){ if(portalRows[i]) portalRows[i].grade=g; }
 function portalRowBill(i,b){ if(portalRows[i]) portalRows[i].bill=b; }
+function portalDeleteRow(i){
+  if(!portalRows[i]) return;
+  portalRows.splice(i,1);
+  portalRows.forEach((r,k)=>r._i=k); // _i ko dobara set karo (indices shift ho gaye)
+  renderPortalPreview();
+  toast('Entry hata di ✅');
+}
 function renderPortalPreview(){
   const rows=portalFilteredRows();
   const totBags=rows.reduce((s,r)=>s+(r.bags||0),0);
@@ -3642,11 +3649,12 @@ function renderPortalPreview(){
   const grades=parseGradesFromSettings();
   const gOpt=sel=>'<option value="">—</option>'+grades.map(g=>`<option value="${escHtml(g)}"${sel===g?' selected':''}>${escHtml(g)}</option>`).join('');
   const bOpt=sel=>`<option value="with_bill"${sel!=='without_bill'?' selected':''}>With Bill</option><option value="without_bill"${sel==='without_bill'?' selected':''}>Without Bill</option>`;
-  const head='<tr><th>FIRM NAME</th><th>Date</th><th>Rate</th><th>Bags</th><th>Weight (Qtl)</th><th>Grade</th><th>Bill</th></tr>';
+  const head='<tr><th>FIRM NAME</th><th>Date</th><th>Rate</th><th>Bags</th><th>Weight (Qtl)</th><th>Grade</th><th>Bill</th><th style="text-align:center">Hatao</th></tr>';
   const body=rows.slice(0,80).map(r=>`<tr><td>${escHtml(r.shop_name)}</td><td>${escHtml(r.date)}</td><td>${fmt(r.rate)}</td><td>${fmt(r.bags)}</td><td>${(r.wt_per_bag||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>`+
     `<td><select class="finp" style="padding:3px 4px;min-width:78px;font-size:12px" onchange="portalRowGrade(${r._i},this.value)">${gOpt(r.grade)}</select></td>`+
-    `<td><select class="finp" style="padding:3px 4px;min-width:120px;font-size:12px" onchange="portalRowBill(${r._i},this.value)">${bOpt(r.bill)}</select></td></tr>`).join('');
-  const more=rows.length>80?`<tr><td colspan="7" style="text-align:center;color:var(--text3)">... ${rows.length-80} aur (bulk "sab pe set" se grade/bill lag jayega)</td></tr>`:'';
+    `<td><select class="finp" style="padding:3px 4px;min-width:120px;font-size:12px" onchange="portalRowBill(${r._i},this.value)">${bOpt(r.bill)}</select></td>`+
+    `<td style="text-align:center"><button class="btn btn-ghost" title="Is entry ko import se hatao" style="padding:3px 9px;font-size:13px;color:var(--red)" onclick="portalDeleteRow(${r._i})">✕</button></td></tr>`).join('');
+  const more=rows.length>80?`<tr><td colspan="8" style="text-align:center;color:var(--text3)">... ${rows.length-80} aur (bulk "sab pe set" se grade/bill lag jayega)</td></tr>`:'';
   E('portal-preview').innerHTML=`<table><thead>${head}</thead><tbody>${body}${more}</tbody></table>`;
   const has=rows.length>0;
   E('portal-csv-btn').style.display=has?'block':'none';
