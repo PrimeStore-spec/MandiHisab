@@ -2136,59 +2136,157 @@ function lotQtyChangeParty(shopId,purchaseId,max){
   updateLiftGodownSummary();
 }
 
-// ── PER-LOT GODOWN PLACEMENT (mixed grade ko alag-alag stack par) ──
-function liftLotGetPlace(shopId,lotId){
+// ── PER-LOT GODOWN PLACEMENT (ek lot ko alag-alag stack par baant sakte hain) ──
+// part.place[lotId] = [{godownId,stackId,bags}, ...]  (array — multi-stack split)
+function liftLotGetPlaces(shopId,lotId){
   const part=liftingPartiesState.find(p=>p.shopId===shopId);
-  if(!part) return {};
+  if(!part) return [];
   part.place=part.place||{};
-  return part.place[lotId]||{};
+  let arr=part.place[lotId];
+  if(!Array.isArray(arr)){
+    // purana single-object form {godownId,stackId} → array me badlo
+    if(arr && (arr.godownId||arr.stackId)) arr=[{godownId:arr.godownId||'',stackId:arr.stackId||'',bags:0}];
+    else arr=[];
+  }
+  if(!arr.length) arr=[{godownId:'',stackId:'',bags:0}];
+  part.place[lotId]=arr;
+  return arr;
+}
+function liftLotLiftedBags(shopId,lotId){
+  const part=liftingPartiesState.find(p=>p.shopId===shopId);
+  return part?(parseInt(part.sel[lotId],10)||0):0;
+}
+// kisi stack par is lifting ko chhod kar pehle se kitne bags hain (capacity check ke liye)
+function stackBaseFill(stackId,exclLiftId){
+  return db.movements.filter(m=>m.kind==='godown'&&m.stackId===stackId&&m.liftingId!==exclLiftId)
+    .reduce((s,m)=>s+(+m.bags||0),0);
 }
 function liftLotPlaceRowHtml(shopId,lotId){
-  const pl=liftLotGetPlace(shopId,lotId);
-  const gid=pl.godownId||'', sid=pl.stackId||'';
+  const places=liftLotGetPlaces(shopId,lotId);
+  const lifted=liftLotLiftedBags(shopId,lotId);
+  if(places.length===1) places[0].bags=lifted; // ek hi jagah → poore bags apne aap
+  const rowsHtml=places.map((pl,j)=>liftLotOnePlaceHtml(shopId,lotId,j,places.length)).join('');
+  return `<div style="grid-column:1/-1;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">
+    <div style="font-size:11px;color:var(--blue2);font-weight:700;margin-bottom:4px">🏬 Is maal ka thikana <span style="color:var(--text3);font-weight:500">(zaroorat ho to alag-alag stack par baant sakte ho)</span>:</div>
+    <div id="lg-rows-${shopId}-${lotId}">${rowsHtml}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;flex-wrap:wrap;gap:6px">
+      <button type="button" class="btn btn-ghost" style="padding:3px 10px;font-size:12px" onclick="liftLotAddPlace('${shopId}','${lotId}')">➕ Aur stack par baanto</button>
+      <span id="lg-status-${shopId}-${lotId}" style="font-size:12px">${liftLotStatusHtml(shopId,lotId)}</span>
+    </div>
+  </div>`;
+}
+function liftLotOnePlaceHtml(shopId,lotId,j,count){
+  const places=liftLotGetPlaces(shopId,lotId);
+  const pl=places[j]||{}; const gid=pl.godownId||'', sid=pl.stackId||'';
   const gOpts='<option value="">-- Godown --</option>'+db.godowns.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(g=>`<option value="${g.id}"${g.id===gid?' selected':''}>${escHtml(g.name)}</option>`).join('');
   const stacks=db.stacks.filter(s=>!gid||s.godownId===gid).sort((a,b)=>a.name.localeCompare(b.name));
   const sOpts='<option value="">-- Stack --</option>'+stacks.map(s=>`<option value="${s.id}"${s.id===sid?' selected':''}>${escHtml(s.name)}</option>`).join('');
-  return `<div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">
-    <span style="font-size:11px;color:var(--blue2);font-weight:700;white-space:nowrap">🏬 Is maal ka thikana:</span>
-    <select class="finp" style="flex:1;min-width:130px;height:34px" id="lg-g-${shopId}-${lotId}" onchange="liftLotGodownChange('${shopId}','${lotId}')">${gOpts}</select>
-    <select class="finp" style="flex:1;min-width:130px;height:34px" id="lg-s-${shopId}-${lotId}" onchange="liftLotStackChange('${shopId}','${lotId}')">${sOpts}</select>
+  const bagsField = count>1 ? `<input type="number" class="finp" style="width:78px;height:34px" id="lg-b-${shopId}-${lotId}-${j}" value="${parseInt(pl.bags,10)||0}" min="0" oninput="liftLotPlaceBagsChange('${shopId}','${lotId}',${j})" placeholder="bags">` : '';
+  const rmBtn = count>1 ? `<button type="button" class="btn btn-ghost" style="padding:3px 8px;color:var(--red)" title="Hatao" onclick="liftLotRemovePlace('${shopId}','${lotId}',${j})">✕</button>` : '';
+  const cap = sid ? liftStackCapHtml(sid) : '';
+  return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:5px">
+    <select class="finp" style="flex:1;min-width:115px;height:34px" id="lg-g-${shopId}-${lotId}-${j}" onchange="liftLotGodownChange('${shopId}','${lotId}',${j})">${gOpts}</select>
+    <select class="finp" style="flex:1;min-width:115px;height:34px" id="lg-s-${shopId}-${lotId}-${j}" onchange="liftLotStackChange('${shopId}','${lotId}',${j})">${sOpts}</select>
+    ${bagsField}${rmBtn}${cap}
   </div>`;
 }
-function liftLotGodownChange(shopId,lotId){
-  const part=liftingPartiesState.find(p=>p.shopId===shopId); if(!part) return;
-  part.place=part.place||{}; part.place[lotId]=part.place[lotId]||{};
-  const g=V('lg-g-'+shopId+'-'+lotId);
-  part.place[lotId].godownId=g; part.place[lotId].stackId='';
-  const sEl=E('lg-s-'+shopId+'-'+lotId);
+// stack ki capacity vs pehle se bhara — chhota helper text
+function liftStackCapHtml(stackId){
+  const st=db.stacks.find(s=>s.id===stackId); if(!st) return '';
+  const cap=+st.capacity||0; if(!cap) return '';
+  const base=stackBaseFill(stackId, V('l-edit-id')||'__none__');
+  const free=cap-base;
+  const col = free<=0?'var(--red)':(free<200?'var(--yellow)':'var(--text3)');
+  return `<span style="font-size:11px;color:${col};white-space:nowrap">cap ${fmt(cap)} · khaali ${fmt(free)}</span>`;
+}
+// ek lot ka placement status (poore lage / baaki / zyada)
+function liftLotStatusHtml(shopId,lotId){
+  const lifted=liftLotLiftedBags(shopId,lotId);
+  const places=liftLotGetPlaces(shopId,lotId);
+  if(places.length===1) places[0].bags=lifted;
+  const placed=places.reduce((s,p)=>s+((p.godownId&&p.stackId)?(parseInt(p.bags,10)||0):0),0);
+  const diff=lifted-placed;
+  if(diff===0 && placed>0) return `<span style="color:var(--green);font-weight:700">✓ ${fmt(lifted)} bags lag gaye</span>`;
+  if(diff>0) return `<span style="color:var(--red);font-weight:700">⚠️ ${fmt(diff)} bags ka stack baaki</span>`;
+  if(diff<0) return `<span style="color:var(--red);font-weight:700">⚠️ ${fmt(-diff)} bags zyada baant diye</span>`;
+  return '';
+}
+function liftRefreshLotStatus(shopId,lotId){
+  const el=E('lg-status-'+shopId+'-'+lotId); if(el) el.innerHTML=liftLotStatusHtml(shopId,lotId);
+}
+function liftLotGodownChange(shopId,lotId,j){
+  const places=liftLotGetPlaces(shopId,lotId);
+  places[j]=places[j]||{godownId:'',stackId:'',bags:0};
+  const g=V('lg-g-'+shopId+'-'+lotId+'-'+j);
+  places[j].godownId=g; places[j].stackId='';
+  const sEl=E('lg-s-'+shopId+'-'+lotId+'-'+j);
   if(sEl){
     const stacks=db.stacks.filter(s=>!g||s.godownId===g).sort((a,b)=>a.name.localeCompare(b.name));
     sEl.innerHTML='<option value="">-- Stack --</option>'+stacks.map(s=>`<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
   }
-  updateLiftGodownSummary();
+  liftRefreshLotStatus(shopId,lotId); updateLiftGodownSummary();
 }
-function liftLotStackChange(shopId,lotId){
-  const part=liftingPartiesState.find(p=>p.shopId===shopId); if(!part) return;
-  part.place=part.place||{}; part.place[lotId]=part.place[lotId]||{};
-  part.place[lotId].stackId=V('lg-s-'+shopId+'-'+lotId);
-  updateLiftGodownSummary();
+function liftLotStackChange(shopId,lotId,j){
+  const places=liftLotGetPlaces(shopId,lotId);
+  places[j]=places[j]||{godownId:'',stackId:'',bags:0};
+  places[j].stackId=V('lg-s-'+shopId+'-'+lotId+'-'+j);
+  renderLiftingModalParties(); // capacity-text dikhane ke liye row dobara banao
 }
-// Godown mode mein live summary: kis stack par kitne bags ja rahe hain
+function liftLotPlaceBagsChange(shopId,lotId,j){
+  const places=liftLotGetPlaces(shopId,lotId);
+  if(!places[j]) return;
+  let v=parseInt(V('lg-b-'+shopId+'-'+lotId+'-'+j),10)||0; if(v<0) v=0;
+  places[j].bags=v;
+  liftRefreshLotStatus(shopId,lotId); updateLiftGodownSummary();
+}
+function liftLotAddPlace(shopId,lotId){
+  const places=liftLotGetPlaces(shopId,lotId);
+  const lifted=liftLotLiftedBags(shopId,lotId);
+  if(places.length===1 && !(parseInt(places[0].bags,10)>0)) places[0].bags=lifted;
+  places.push({godownId:'',stackId:'',bags:0});
+  renderLiftingModalParties();
+}
+function liftLotRemovePlace(shopId,lotId,j){
+  const places=liftLotGetPlaces(shopId,lotId);
+  places.splice(j,1);
+  if(places.length===1) places[0].bags=liftLotLiftedBags(shopId,lotId);
+  renderLiftingModalParties();
+}
+// ek lot ka normalized placement (single → poore bags; multi → jaise bhara) — save/validation ke liye
+function liftNormalizedPlaces(part,lotId){
+  const b=parseInt(part.sel[lotId],10)||0;
+  let arr=Array.isArray((part.place||{})[lotId])?part.place[lotId]:[];
+  arr=arr.filter(pl=>pl.godownId&&pl.stackId);
+  if(arr.length===0) return {bags:b,places:[]};
+  if(arr.length===1) return {bags:b,places:[{godownId:arr[0].godownId,stackId:arr[0].stackId,bags:b}]};
+  return {bags:b,places:arr.map(pl=>({godownId:pl.godownId,stackId:pl.stackId,bags:parseInt(pl.bags,10)||0}))};
+}
+// Godown mode mein live summary: kis stack par kitne ja rahe + capacity warning
 function updateLiftGodownSummary(){
   const box=E('ld-godown-summary'); if(!box) return;
   if(V('ld-kind')!=='godown'){ box.innerHTML=''; return; }
-  const byStack={}; let placed=0,total=0,unplaced=0;
+  const exclLift=V('l-edit-id')||'__none__';
+  const byStack={}; let total=0,unplaced=0,over=0;
   liftingPartiesState.forEach(part=>{
-    Object.entries(part.sel||{}).forEach(([lotId,bags])=>{
-      const b=parseInt(bags,10)||0; if(b<=0) return; total+=b;
-      const pl=(part.place||{})[lotId]||{};
-      if(pl.godownId&&pl.stackId){ placed+=b; const k=getGodownName(pl.godownId)+' › '+getStackName(pl.stackId); byStack[k]=(byStack[k]||0)+b; }
-      else unplaced+=b;
+    Object.keys(part.sel||{}).forEach(lotId=>{
+      const b=parseInt(part.sel[lotId],10)||0; if(b<=0) return; total+=b;
+      const norm=liftNormalizedPlaces(part,lotId);
+      let lotPlaced=0;
+      norm.places.forEach(pl=>{ byStack[pl.stackId]=(byStack[pl.stackId]||0)+pl.bags; lotPlaced+=pl.bags; });
+      const u=b-lotPlaced; if(u>0) unplaced+=u; else if(u<0) over+=(-u);
     });
   });
   if(!total){ box.innerHTML=''; return; }
-  let html=Object.entries(byStack).map(([k,v])=>`<span class="badge badge-green" style="margin:2px 4px 2px 0">${escHtml(k)}: ${fmt(v)} bags</span>`).join('');
+  let html='';
+  Object.entries(byStack).forEach(([sid,addBags])=>{
+    const st=db.stacks.find(s=>s.id===sid); if(!st) return;
+    const base=stackBaseFill(sid,exclLift); const after=base+addBags; const cap=+st.capacity||0;
+    const overCap=cap>0 && after>cap;
+    const label=`${getStackName(sid)}: +${fmt(addBags)} → ${fmt(after)}${cap?(' / '+fmt(cap)):''}`;
+    html+=`<span class="badge ${overCap?'badge-red':'badge-green'}" style="margin:2px 4px 2px 0">${overCap?'⛔ ':''}${escHtml(label)}${overCap?(' (cap se '+fmt(after-cap)+' zyada!)'):''}</span>`;
+  });
   if(unplaced>0) html+=`<span class="badge badge-amber" style="margin:2px 4px 2px 0">⚠️ ${fmt(unplaced)} bags ka stack baaki hai</span>`;
+  if(over>0) html+=`<span class="badge badge-red" style="margin:2px 4px 2px 0">⚠️ ${fmt(over)} bags lifted se zyada baant diye</span>`;
   box.innerHTML=html;
 }
 
@@ -2238,15 +2336,28 @@ function saveLifting(){
     if(!V('ld-buyer')) return toast('Sale ke liye Party (buyer) chunein!','e');
     if((parseFloat(V('ld-rate'))||0)<=0) return toast('Sale rate likhein!','e');
   } else if(destKind==='godown'){
-    // har lot (rate/grade) ke saamne godown+stack hona zaroori hai
+    // har lot (rate/grade) ke saamne godown+stack hona zaroori hai; multi-stack ho to bags poore baante jayein
+    const stackAdd={};
     for(const part of liftingPartiesState){
       for(const [lotId,bags] of Object.entries(part.sel||{})){
-        if((parseInt(bags,10)||0)<=0) continue;
-        const pl=(part.place||{})[lotId]||{};
-        if(!pl.godownId||!pl.stackId){
-          const p=db.purchases.find(x=>x.id===lotId);
-          return toast(`${getShopName(part.shopId)} @ ${p?rupee(p.rate):''} (${p&&p.grade?p.grade:'?'}) ka godown+stack chunein!`,'e');
-        }
+        const b=parseInt(bags,10)||0; if(b<=0) continue;
+        const p=db.purchases.find(x=>x.id===lotId);
+        const tag=`${getShopName(part.shopId)} @ ${p?rupee(p.rate):''} (${p&&p.grade?p.grade:'?'})`;
+        const norm=liftNormalizedPlaces(part,lotId);
+        if(!norm.places.length) return toast(`${tag} ka godown+stack chunein!`,'e');
+        const sum=norm.places.reduce((s,x)=>s+x.bags,0);
+        if(sum!==b) return toast(`${tag}: ${fmt(b)} bags me se ${fmt(sum)} hi baante — poore ${fmt(b)} bags kisi na kisi stack par lagao`,'e');
+        if(norm.places.some(x=>x.bags<=0)) return toast(`${tag}: har stack par bags 0 se zyada hone chahiye (ya us stack ko hata do)`,'e');
+        norm.places.forEach(x=>{ stackAdd[x.stackId]=(stackAdd[x.stackId]||0)+x.bags; });
+      }
+    }
+    // capacity check — koi stack apni capacity se zyada na bhar jaye
+    for(const sid of Object.keys(stackAdd)){
+      const st=db.stacks.find(s=>s.id===sid); const cap=+(st&&st.capacity)||0;
+      if(cap>0){
+        const base=stackBaseFill(sid, editId||'__none__');
+        const after=base+stackAdd[sid];
+        if(after>cap) return toast(`${getStackName(sid)} ki capacity ${fmt(cap)} bags hai, par ${fmt(after)} ho jayega (${fmt(after-cap)} zyada). Kuch bags doosre stack par daalein.`,'e');
       }
     }
   }
@@ -2279,14 +2390,16 @@ function saveLifting(){
       address:V('ld-address'), unloadDate:V('ld-unload'), dueDate:V('ld-due') });
   } else if(destKind==='godown'){
     const gdest=V('ld-gdest');
-    // har lot ka apna godown+stack → alag movement (rate/grade exact rahega)
-    parties.forEach(pt=>pt.lots.forEach(({purchaseId,bags})=>{
-      const part=liftingPartiesState.find(p=>p.shopId===pt.shopId)||{};
-      const pl=(part.place||{})[purchaseId]||{};
-      // 1 bag = 50 kg = 0.5 qtl (poore app mein yahi basis — HARD RULE)
-      const qtl=Math.round(bags*0.5*100)/100;
-      db.movements.push({ id:uid(), liftingId:rec.id, date:rec.date, kind:'godown', bags, parentId:'', auto:true, note:'(lifting se auto)', createdAt:new Date().toISOString(),
-        purchaseId, shopId:pt.shopId, godownId:pl.godownId, stackId:pl.stackId, qtl, status:'instock', destination:gdest });
+    // har lot ke har stack-hisse ke liye alag movement (rate/grade exact + multi-stack split)
+    parties.forEach(pt=>pt.lots.forEach(({purchaseId})=>{
+      const part=liftingPartiesState.find(p=>p.shopId===pt.shopId)||{sel:{},place:{}};
+      const norm=liftNormalizedPlaces(part,purchaseId);
+      norm.places.forEach(pl=>{
+        // 1 bag = 50 kg = 0.5 qtl (poore app mein yahi basis — HARD RULE)
+        const qtl=Math.round(pl.bags*0.5*100)/100;
+        db.movements.push({ id:uid(), liftingId:rec.id, date:rec.date, kind:'godown', bags:pl.bags, parentId:'', auto:true, note:'(lifting se auto)', createdAt:new Date().toISOString(),
+          purchaseId, shopId:pt.shopId, godownId:pl.godownId, stackId:pl.stackId, qtl, status:'instock', destination:gdest });
+      });
     }));
   }
   saveDb(); renderAll(); closeModal('lifting-modal');
@@ -2306,15 +2419,22 @@ function editLifting(id){
   const l=db.liftings.find(x=>x.id===id); if(!l) return;
   setV('l-edit-id',id);
   setV('l-date',l.date);setV('l-gp',l.gatepass);setV('l-veh',l.vehicle);setV('l-driver',l.driver||'');setV('l-trans',l.transporter||'');setV('l-dest',l.destination||'');setV('l-rem',l.remarks||'');
-  // per-lot godown placements (purchaseId → {godownId,stackId}) auto movements se load
+  // per-lot godown placements (purchaseId → [{godownId,stackId,bags}]) auto movements se load
   const gMoves=db.movements.filter(m=>m.liftingId===l.id && m.auto && m.kind==='godown');
-  const placeByLot={};
+  const placeByLot={}; // purchaseId → array of placements (multi-stack)
   let legacyPlace=null; // purana whole-lifting movement (bina purchaseId) → sab lots ka default
-  gMoves.forEach(m=>{ if(m.purchaseId) placeByLot[m.purchaseId]={godownId:m.godownId||'',stackId:m.stackId||''}; else if(m.godownId) legacyPlace={godownId:m.godownId||'',stackId:m.stackId||''}; });
+  gMoves.forEach(m=>{
+    if(m.purchaseId){ (placeByLot[m.purchaseId]=placeByLot[m.purchaseId]||[]).push({godownId:m.godownId||'',stackId:m.stackId||'',bags:+m.bags||0}); }
+    else if(m.godownId){ legacyPlace={godownId:m.godownId||'',stackId:m.stackId||''}; }
+  });
   liftingPartiesState=liftingParties(l).map(p=>({
     shopId:p.shopId,
     sel:Object.fromEntries((p.lots||[]).map(x=>[x.purchaseId,x.bags])),
-    place:Object.fromEntries((p.lots||[]).map(x=>[x.purchaseId,placeByLot[x.purchaseId]||legacyPlace||{}]).filter(e=>e[1].godownId))
+    place:Object.fromEntries((p.lots||[]).map(x=>{
+      let arr=placeByLot[x.purchaseId];
+      if((!arr||!arr.length) && legacyPlace) arr=[{godownId:legacyPlace.godownId,stackId:legacyPlace.stackId,bags:x.bags}];
+      return [x.purchaseId, arr||[]];
+    }))
   }));
   // load linked auto Sale/Godown movement (if any)
   clr('ld-buyer','ld-address','ld-rate','ld-qtl','ld-partywt','ld-amount','ld-unload','ld-due','ld-gdest');
@@ -4497,11 +4617,14 @@ function renderStacks(){
   if(!db.stacks.length){ tb.innerHTML='<tr><td colspan="7"><div class="empty" style="padding:24px"><div class="ei">🗄️</div><p>Koi Stack nahi. Godown banakar uske andar Stack add karein.</p></div></td></tr>'; return; }
   tb.innerHTML=db.stacks.slice().sort((a,b)=>(getGodownName(a.godownId)+a.name).localeCompare(getGodownName(b.godownId)+b.name)).map(s=>{
     const t=stackStockTotals(s.id);
+    const cap=+s.capacity||0;
+    const over=cap>0 && t.bags>cap;
+    const free=cap-t.bags;
     return `<tr>
     <td><strong style="color:var(--blue);cursor:pointer" onclick="openStackSummary('${s.id}')">${escHtmlSafe(s.name)} 🔍</strong></td>
     <td><span class="badge badge-blue">${escHtmlSafe(getGodownName(s.godownId))}</span></td>
-    <td>${s.capacity?fmt(s.capacity):'-'}</td>
-    <td style="text-align:right;font-weight:700;color:var(--orange)">${fmt(t.bags)}</td>
+    <td>${cap?fmt(cap):'-'}${cap?`<br><span style="font-size:11px;color:${over?'var(--red)':(free<200?'var(--yellow)':'var(--text3)')}">${over?('⛔ '+fmt(t.bags-cap)+' zyada'):('khaali '+fmt(free))}</span>`:''}</td>
+    <td style="text-align:right;font-weight:700;color:${over?'var(--red)':'var(--orange)'}">${fmt(t.bags)}${over?' ⛔':''}</td>
     <td style="text-align:right;font-weight:700;color:var(--blue2)">${fmtQtl(t.qtl)}</td>
     <td>${escHtmlSafe(s.note)||'-'}</td>
     <td><button class="btn btn-blue btn-sm" onclick="openStackSummary('${s.id}')">👁️ Summary</button> <button class="btn btn-ghost btn-sm" onclick="editStack('${s.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteStack('${s.id}')">🗑️</button></td>
