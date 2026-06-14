@@ -398,13 +398,13 @@ main{max-width:100%;padding:12px 10px;}
 <div class="section active" id="section-dashboard">
   <div class="stats-grid">
     <div class="sc" style="--cc:var(--blue)"><span class="si">📅</span><div class="sl">Kal Da Purchase</div><div class="sv" id="ds-yesterday-bags">0</div><div class="ss" id="ds-yesterday-sub">bags (yesterday)</div></div>
-    <div class="sc" style="--cc:var(--purple)"><span class="si">📦</span><div class="sl">Purchase Lots</div><div class="sv" id="ds-lots">0</div><div class="ss">Rate-wise entries</div></div>
-    <div class="sc" style="--cc:#0f766e"><span class="si">🌽</span><div class="sl">Total Purchased</div><div class="sv" id="ds-total-bags">0</div><div class="ss" id="ds-total-bags-sub">bags</div></div>
-    <div class="sc" style="--cc:#d97706"><span class="si">⏳</span><div class="sl">Baaki at Shops</div><div class="sv" id="ds-pending-bags">0</div><div class="ss" id="ds-pending-val">₹0 value</div></div>
+    <div class="sc" style="--cc:#0f766e"><span class="si">🌽</span><div class="sl">Total Purchase</div><div class="sv" id="ds-total-bags">0</div><div class="ss" id="ds-total-bags-sub">bags</div></div>
     <div class="sc" style="--cc:var(--green)"><span class="si">🚛</span><div class="sl">Total Lifted</div><div class="sv" id="ds-lifted-bags">0</div><div class="ss" id="ds-lifted-trips">0 trips</div></div>
-    <div class="sc" style="--cc:var(--red)"><span class="si">🛍️</span><div class="sl">Bardana Baaki</div><div class="sv" id="ds-bardana-out">0</div><div class="ss">bags wapas nahi</div></div>
-    <div class="sc" style="--cc:#9a3412"><span class="si">💰</span><div class="sl">Purchase Value</div><div class="sv" id="ds-value">₹0</div><div class="ss">total invested</div></div>
-    <div class="sc" style="--cc:var(--purple)"><span class="si">📊</span><div class="sl">Avg Rate</div><div class="sv" id="ds-avg-rate">₹0</div><div class="ss">per quintal</div></div>
+    <div class="sc" style="--cc:#d97706"><span class="si">⏳</span><div class="sl">Pending Lifting</div><div class="sv" id="ds-pending-bags">0</div><div class="ss" id="ds-pending-val">₹0 value</div></div>
+    <div class="sc" style="--cc:var(--red)"><span class="si">🧾</span><div class="sl">Without Bill</div><div class="sv" id="ds-nobill-bags">0</div><div class="ss" id="ds-nobill-sub">bags (bina bill)</div></div>
+    <div class="sc" style="--cc:#9a3412"><span class="si">💰</span><div class="sl">Total Purchase With Exp</div><div class="sv" id="ds-withexp">₹0</div><div class="ss" id="ds-withexp-sub">PA + Dami + W&F + Stitch</div></div>
+    <div class="sc" style="--cc:var(--purple)"><span class="si">📊</span><div class="sl">Asli Average Rate</div><div class="sv" id="ds-avg-rate">₹0</div><div class="ss" id="ds-avg-rate-sub">per quintal (sab kharche)</div></div>
+    <div class="sc" style="--cc:var(--green)"><span class="si">🌾</span><div class="sl">Mera Farh — Bags</div><div class="sv" id="ds-farh-bags">0</div><div class="ss" id="ds-farh-sub">total bags (alag)</div></div>
   </div>
   <!-- Charts Row -->
   <div class="dash-charts-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
@@ -820,6 +820,21 @@ main{max-width:100%;padding:12px 10px;}
           <textarea class="finp" id="s-grades" rows="4" style="width:100%;resize:vertical;font-family:inherit" placeholder="A&#10;B&#10;C&#10;Mixed"></textarea>
         </div>
         <button class="btn btn-blue" style="margin-top:12px" onclick="saveSettings()">💾 Save</button>
+      </div>
+    </div>
+    <!-- Kharche (Charges) — Dashboard ke avg rate me lagte hain -->
+    <div class="tw" style="margin:0;grid-column:1/-1">
+      <div class="th2"><div class="ttl">💸 Kharche (Charges)</div><div class="setting-sub" style="font-size:11px">Dashboard ke "With Exp" aur "Asli Average Rate" me ye lagte hain</div></div>
+      <div style="padding:16px">
+        <div class="fgrid fg2">
+          <div class="fg2x"><div class="flbl">Dami / Arhat (% of Purchase Amount)</div><input class="finp" id="s-ch-dami" type="number" step="0.01" min="0" placeholder="2.5"></div>
+          <div class="fg2x"><div class="flbl">Market Fees (% of Purchase Amount)</div><input class="finp" id="s-ch-market" type="number" step="0.01" min="0" placeholder="3"></div>
+          <div class="fg2x"><div class="flbl">Weighing &amp; Filling (₹ / bag)</div><input class="finp" id="s-ch-wf" type="number" step="0.01" min="0" placeholder="7.5"></div>
+          <div class="fg2x"><div class="flbl">Manual Stitching (₹ / bag)</div><input class="finp" id="s-ch-stitch" type="number" step="0.01" min="0" placeholder="1.29"></div>
+          <div class="fg2x"><div class="flbl">Loading / Unloading (₹ / bag)</div><input class="finp" id="s-ch-loading" type="number" step="0.01" min="0" placeholder="10"></div>
+          <div class="fg2x"><div class="flbl">Transport (₹ / bag)</div><input class="finp" id="s-ch-transport" type="number" step="0.01" min="0" placeholder="4"></div>
+        </div>
+        <button class="btn btn-blue" style="margin-top:12px" onclick="saveSettings()">💾 Save Kharche</button>
       </div>
     </div>
   </div>
@@ -1541,6 +1556,7 @@ function ensureDbShape(){
   if(!db.bardanaJournal) db.bardanaJournal=[];
   if(!db.settings) db.settings={};
   if(!db.settings.grades||!db.settings.grades.length) db.settings.grades=['A','B','C','Mixed'];
+  if(!db.settings.charges||typeof db.settings.charges!=='object') db.settings.charges={dami:2.5,wf:7.5,stitch:1.29,market:3,loading:10,transport:4};
   db.liftings.forEach(l=>{
     if((!l.parties||!l.parties.length) && l.shopId){
       l.parties=[{shopId:l.shopId,lots:l.lots?[...l.lots]:[]}];
@@ -3085,36 +3101,65 @@ function openRateChartExpanded(){
   openModal('rate-chart-modal');
 }
 
+// ── KHARCHE (charges) — Settings me editable, default sheet se nikale rates ──
+function getCharges(){
+  const c=(db.settings&&db.settings.charges)||{};
+  const num=(v,d)=>{ const n=parseFloat(v); return isNaN(n)?d:n; };
+  return {
+    dami:      num(c.dami,2.5),    // % of Purchase Amount
+    wf:        num(c.wf,7.5),      // ₹ / bag (Weighing & Filling)
+    stitch:    num(c.stitch,1.29), // ₹ / bag (Manual Stitching)
+    market:    num(c.market,3),    // % of Purchase Amount (Market Fees)
+    loading:   num(c.loading,10),  // ₹ / bag (Loading/Unloading)
+    transport: num(c.transport,4)  // ₹ / bag (Transport)
+  };
+}
+
 // ── RENDER DASHBOARD ──
 let dashSort={};
 function renderDashboard(){
-  const totalBags=db.purchases.reduce((s,p)=>s+p.bags,0);
-  const totalLifted=db.liftings.reduce((s,l)=>s+l.lots.reduce((a,x)=>a+x.bags,0),0);
+  const charges=getCharges();
+  const totalBags=db.purchases.reduce((s,p)=>s+(+p.bags||0),0);
+  const totalLifted=db.liftings.reduce((s,l)=>s+l.lots.reduce((a,x)=>a+(+x.bags||0),0),0);
   const pendingBags=totalBags-totalLifted;
-  const totalValue=db.purchases.reduce((s,p)=>s+(p.bags*p.rate*(p.wt||50)/100),0);
-  const pendingValue=db.purchases.reduce((s,p)=>{const rem=p.bags-getLiftedFromLot(p.id);return s+(rem*p.rate*(p.wt||50)/100);},0);
-  const avgRate=totalBags>0?(db.purchases.reduce((s,p)=>s+(p.rate*p.bags),0)/totalBags):0;
+  // Quintal HARD RULE: 1 bag = 50kg → qtl = bags × 0.5 (portal lots ke galat wt ko ignore)
+  const totalWtQtl=Math.round(totalBags*0.5*100)/100;
+  // Purchase Amount (sahi base): rate × (bags×0.5 qtl)
+  const PA=db.purchases.reduce((s,p)=>s+((+p.rate||0)*(+p.bags||0)*0.5),0);
+  const pendingValue=db.purchases.reduce((s,p)=>{const rem=(+p.bags||0)-getLiftedFromLot(p.id);return s+(rem*(+p.rate||0)*0.5);},0);
+  const plainRate=totalBags>0?(db.purchases.reduce((s,p)=>s+((+p.rate||0)*(+p.bags||0)),0)/totalBags):0;
+  // ── KHARCHE (Settings me editable) ──
+  const dami=PA*(charges.dami/100);
+  const wf=totalBags*charges.wf;
+  const stitch=totalBags*charges.stitch;
+  const withExp=PA+dami+wf+stitch;                 // Box 6
+  const market=PA*(charges.market/100);
+  const loading=totalBags*charges.loading;
+  const transport=totalBags*charges.transport;
+  const totalCost=withExp+market+loading+transport;
+  const avgRate=totalWtQtl>0?(totalCost/totalWtQtl):0; // Box 7
+  // Without Bill bags (Box 5)
+  const noBillBags=db.purchases.filter(p=>(p.billType||'with_bill')==='without_bill').reduce((s,p)=>s+(+p.bags||0),0);
+  // Mera Farh bags (Box 8) — ALAG, kahin reflect nahi
+  const farhBags=(db.farhEntries||[]).reduce((s,e)=>s+(+e.bags||0),0);
   const bardanaOut=db.shops.reduce((s,sh)=>s+getBardanaOutstanding(sh.id),0);
   const yStr=yesterdayStr();
-  const yBags=db.purchases.filter(p=>p.date===yStr).reduce((s,p)=>s+p.bags,0);
+  const yBags=db.purchases.filter(p=>p.date===yStr).reduce((s,p)=>s+(+p.bags||0),0);
   // Header stats
   E('h-shops').textContent=db.shops.length;
   E('h-purchased').textContent=fmt(totalBags);
   E('h-pending').textContent=fmt(pendingBags);
   E('h-lifted').textContent=fmt(totalLifted);
   E('h-bardana').textContent=fmt(bardanaOut);
-  // Stat tiles
+  // Stat tiles (naye 8 box)
   if(E('ds-yesterday-bags')){ E('ds-yesterday-bags').textContent=fmt(yBags); if(E('ds-yesterday-sub')) E('ds-yesterday-sub').textContent=yStr+' (kal)'; }
-  E('ds-lots').textContent=db.purchases.length;
-  E('ds-total-bags').textContent=fmt(totalBags);
-  E('ds-total-bags-sub').textContent=`${db.shops.length} shops se`;
-  E('ds-pending-bags').textContent=fmt(pendingBags);
-  E('ds-pending-val').textContent=rupee(Math.round(pendingValue))+' value';
-  E('ds-lifted-bags').textContent=fmt(totalLifted);
-  E('ds-lifted-trips').textContent=db.liftings.length+' trips';
-  E('ds-bardana-out').textContent=fmt(bardanaOut);
-  E('ds-value').textContent=rupee(Math.round(totalValue));
-  E('ds-avg-rate').textContent=rupee(Math.round(avgRate));
+  if(E('ds-total-bags')){ E('ds-total-bags').textContent=fmt(totalBags); if(E('ds-total-bags-sub')) E('ds-total-bags-sub').textContent=`${rupee(Math.round(PA))} · ${db.purchases.length} lots`; }
+  if(E('ds-lifted-bags')){ E('ds-lifted-bags').textContent=fmt(totalLifted); if(E('ds-lifted-trips')) E('ds-lifted-trips').textContent=db.liftings.length+' trips'; }
+  if(E('ds-pending-bags')){ E('ds-pending-bags').textContent=fmt(pendingBags); if(E('ds-pending-val')) E('ds-pending-val').textContent=rupee(Math.round(pendingValue))+' value'; }
+  if(E('ds-nobill-bags')){ E('ds-nobill-bags').textContent=fmt(noBillBags); }
+  if(E('ds-withexp')){ E('ds-withexp').textContent=rupee(Math.round(withExp)); if(E('ds-withexp-sub')) E('ds-withexp-sub').textContent=`PA ${rupee(Math.round(PA))} + exp ${rupee(Math.round(dami+wf+stitch))}`; }
+  if(E('ds-avg-rate')){ E('ds-avg-rate').textContent=rupee(Math.round(avgRate)); if(E('ds-avg-rate-sub')) E('ds-avg-rate-sub').textContent=`plain ₹${fmt(Math.round(plainRate))} → cost ₹${fmt(Math.round(avgRate))}/qtl`; }
+  if(E('ds-farh-bags')){ E('ds-farh-bags').textContent=fmt(farhBags); if(E('ds-farh-sub')) E('ds-farh-sub').textContent=`${(db.farhEntries||[]).length} entries (alag record)`; }
   // Shop chart
   const shopChart=E('dash-chart-shops');
   if(!db.shops.length){ shopChart.innerHTML='<div class="empty" style="padding:20px"><div class="ei">📊</div><p>Data nahi</p></div>'; }
@@ -4548,12 +4593,22 @@ function loadSettings(){
   setV('s-def-wt',s.defWt||50);setV('s-def-btype',s.defBtype||'50kg');setV('s-per-page',s.perPage||'25');
   const g=(s.grades&&s.grades.length)?s.grades.join('\n'):'A\nB\nC\nMixed';
   if(E('s-grades')) setV('s-grades',g);
+  // Kharche (charges)
+  const c=getCharges();
+  setV('s-ch-dami',c.dami); setV('s-ch-market',c.market); setV('s-ch-wf',c.wf);
+  setV('s-ch-stitch',c.stitch); setV('s-ch-loading',c.loading); setV('s-ch-transport',c.transport);
   return s;
 }
 function saveSettings(){
   const gradeLines=V('s-grades').split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
-  db.settings={company:V('s-company'),address:V('s-address'),phone:V('s-phone'),gstin:V('s-gstin'),defWt:V('s-def-wt'),defBtype:V('s-def-btype'),perPage:V('s-per-page'),grades:gradeLines.length?gradeLines:['A','B','C','Mixed']};
-  saveDb(); refreshGradeSelects(); toast('Settings saved ✅');
+  const numOr=(id,d)=>{ const n=parseFloat(V(id)); return isNaN(n)?d:n; };
+  const charges={
+    dami:numOr('s-ch-dami',2.5), market:numOr('s-ch-market',3),
+    wf:numOr('s-ch-wf',7.5), stitch:numOr('s-ch-stitch',1.29),
+    loading:numOr('s-ch-loading',10), transport:numOr('s-ch-transport',4)
+  };
+  db.settings={company:V('s-company'),address:V('s-address'),phone:V('s-phone'),gstin:V('s-gstin'),defWt:V('s-def-wt'),defBtype:V('s-def-btype'),perPage:V('s-per-page'),grades:gradeLines.length?gradeLines:['A','B','C','Mixed'],charges};
+  saveDb(); refreshGradeSelects(); renderDashboard(); toast('Settings saved ✅');
 }
 
 function exportAllData(){
