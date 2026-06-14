@@ -336,6 +336,7 @@ main{max-width:100%;padding:12px 10px;}
   <button class="tab" onclick="goTab('purchase',this)" id="tab-purchase">📦 Purchase</button>
   <button class="tab" onclick="goTab('lifting',this)" id="tab-lifting">🚛 Lifting</button>
   <button class="tab" onclick="goTab('dispatch',this)" id="tab-dispatch">🚚 Sale / Godown</button>
+  <button class="tab" onclick="goTab('farh',this)" id="tab-farh" style="color:var(--green)">🌾 Mera Farh</button>
   <button class="tab" onclick="goTab('reports',this)" id="tab-reports">📈 Reports</button>
   <button class="tab" onclick="goTab('settings',this)" id="tab-settings">⚙️ Settings</button>
 </div>
@@ -396,10 +397,10 @@ main{max-width:100%;padding:12px 10px;}
 <!-- ════════════════════════════ DASHBOARD ════════════════════════════ -->
 <div class="section active" id="section-dashboard">
   <div class="stats-grid">
-    <div class="sc" style="--cc:var(--blue)"><span class="si">📅</span><div class="sl">YESTERDAY PURCHASE</div><div class="sv" id="ds-yesterday-bags">0</div><div class="ss" id="ds-yesterday-sub">bags (yesterday)</div></div>
+    <div class="sc" style="--cc:var(--blue)"><span class="si">📅</span><div class="sl">Kal Da Purchase</div><div class="sv" id="ds-yesterday-bags">0</div><div class="ss" id="ds-yesterday-sub">bags (yesterday)</div></div>
     <div class="sc" style="--cc:var(--purple)"><span class="si">📦</span><div class="sl">Purchase Lots</div><div class="sv" id="ds-lots">0</div><div class="ss">Rate-wise entries</div></div>
     <div class="sc" style="--cc:#0f766e"><span class="si">🌽</span><div class="sl">Total Purchased</div><div class="sv" id="ds-total-bags">0</div><div class="ss" id="ds-total-bags-sub">bags</div></div>
-    <div class="sc" style="--cc:#d97706"><span class="si">⏳</span><div class="sl">PENDING LIFTING</div><div class="sv" id="ds-pending-bags">0</div><div class="ss" id="ds-pending-val">₹0 value</div></div>
+    <div class="sc" style="--cc:#d97706"><span class="si">⏳</span><div class="sl">Baaki at Shops</div><div class="sv" id="ds-pending-bags">0</div><div class="ss" id="ds-pending-val">₹0 value</div></div>
     <div class="sc" style="--cc:var(--green)"><span class="si">🚛</span><div class="sl">Total Lifted</div><div class="sv" id="ds-lifted-bags">0</div><div class="ss" id="ds-lifted-trips">0 trips</div></div>
     <div class="sc" style="--cc:var(--red)"><span class="si">🛍️</span><div class="sl">Bardana Baaki</div><div class="sv" id="ds-bardana-out">0</div><div class="ss">bags wapas nahi</div></div>
     <div class="sc" style="--cc:#9a3412"><span class="si">💰</span><div class="sl">Purchase Value</div><div class="sv" id="ds-value">₹0</div><div class="ss">total invested</div></div>
@@ -703,6 +704,46 @@ main{max-width:100%;padding:12px 10px;}
   <div id="dispatch-output"></div>
 </div>
 
+<!-- ════════════════════════════ MERA FARH (apni mandi — bilkul alag record) ════════════════════════════ -->
+<div class="section" id="section-farh">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+    <div class="stl">🌾 Mera Farh / <span>Apni Mandi (alag record)</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="prepNewFarmerModal();openModal('farmer-modal')">👨‍🌾 Naya Farmer</button>
+      <button class="btn btn-green" onclick="prepNewFarhModal();openModal('farh-modal')">＋ Naya Farh Entry</button>
+    </div>
+  </div>
+  <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--r2);padding:8px 12px;margin-bottom:12px;font-size:12px;color:#047857">
+    📌 Yeh record bilkul alag hai — iska aapke baaki Purchase / Lifting / Godown / Stack / Dashboard / Reports par <b>koi asar nahi</b> padta.
+  </div>
+  <div id="farh-summary" class="stats-grid" style="margin-bottom:14px"></div>
+  <div class="fbox" style="margin-bottom:12px">
+    <div class="fg">
+      <div class="fgrp"><span class="fl">Farmer</span><select class="fs" id="ff-farmer" onchange="renderFarh()"><option value="">Sab</option></select></div>
+      <div class="fgrp"><span class="fl">Bill</span><select class="fs" id="ff-bill" onchange="renderFarh()"><option value="">Sab</option><option value="with_bill">Bill</option><option value="without_bill">Without Bill</option></select></div>
+      <div class="fgrp"><span class="fl">Godown</span><select class="fs" id="ff-godown" onchange="renderFarh()"><option value="">Sab</option></select></div>
+      <div class="fgrp"><span class="fl">Date Se</span><input type="date" class="fi" id="ff-from" onchange="renderFarh()"></div>
+      <div class="fgrp"><span class="fl">Date Tak</span><input type="date" class="fi" id="ff-to" onchange="renderFarh()"></div>
+      <div class="fgrp" style="flex:1;min-width:140px"><span class="fl">Search</span><input class="fi" id="ff-search" placeholder="Farmer / Grade / Stack" oninput="renderFarh()"></div>
+      <div style="flex:0"><button class="btn btn-ghost btn-sm" onclick="clr('ff-farmer','ff-bill','ff-godown','ff-from','ff-to','ff-search');renderFarh()">✖ Clear</button></div>
+    </div>
+  </div>
+  <div class="tw" style="margin-bottom:16px">
+    <div class="th2"><div class="ttl">🌾 Farh Entries</div><div class="rec-count" id="farh-count">0</div></div>
+    <div class="tsc"><table>
+      <thead><tr><th>Date</th><th>Farmer</th><th style="text-align:right">Bags</th><th>Grade</th><th style="text-align:right">Wt 50kg (Qtl)</th><th style="text-align:right">Kanta Wt (Qtl)</th><th>Bill</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th><th>Godown</th><th>Stack</th><th>Action</th></tr></thead>
+      <tbody id="farh-tbody"></tbody>
+    </table></div>
+  </div>
+  <div class="tw">
+    <div class="th2"><div class="ttl">👨‍🌾 Farmers List</div><div class="rec-count" id="farmers-count">0</div></div>
+    <div class="tsc"><table>
+      <thead><tr><th>Farmer Naam</th><th>Phone</th><th>Gaon / Village</th><th style="text-align:right">Entries</th><th style="text-align:right">Total Bags</th><th>Note</th><th>Action</th></tr></thead>
+      <tbody id="farmers-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
 <!-- ════════════════════════════ REPORTS ════════════════════════════ -->
 <div class="section" id="section-reports">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
@@ -892,6 +933,53 @@ main{max-width:100%;padding:12px 10px;}
       </div>
     </div>
     <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('stack-modal')">Cancel</button><button class="btn btn-blue" onclick="saveStack()">💾 Save</button></div></div>
+  </div>
+</div>
+
+<!-- FARMER MODAL (Mera Farh ke liye alag farmer list) -->
+<div class="ov" id="farmer-modal">
+  <div class="modal-box modal-sm">
+    <div class="mh"><div class="mt" id="farmer-modal-title">👨‍🌾 Naya Farmer Add</div><button class="mx" onclick="closeModal('farmer-modal')">✕</button></div>
+    <div class="mb">
+      <input type="hidden" id="farmer-edit-id">
+      <div class="fgrid fg2">
+        <div class="fg2x"><div class="flbl">Farmer Naam *</div><input class="finp" id="fm-name" placeholder="Kisaan ka naam"></div>
+        <div class="fg2x"><div class="flbl">Phone</div><input class="finp" id="fm-phone" placeholder="Optional"></div>
+        <div class="fg2x"><div class="flbl">Gaon / Village</div><input class="finp" id="fm-village" placeholder="Optional"></div>
+        <div class="fg2x"><div class="flbl">Note</div><input class="finp" id="fm-note" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('farmer-modal')">Cancel</button><button class="btn btn-green" onclick="saveFarmer()">💾 Save</button></div></div>
+  </div>
+</div>
+
+<!-- FARH ENTRY MODAL -->
+<div class="ov" id="farh-modal">
+  <div class="modal-box modal-lg">
+    <div class="mh"><div class="mt" id="farh-modal-title">🌾 Naya Farh Entry</div><button class="mx" onclick="closeModal('farh-modal')">✕</button></div>
+    <div class="mb">
+      <input type="hidden" id="farh-edit-id">
+      <div class="fgrid fg2">
+        <div class="fg2x"><div class="flbl">Date *</div><input class="finp" id="fh-date" type="date"></div>
+        <div class="fg2x"><div class="flbl">Farmer *</div>
+          <div style="display:flex;gap:6px">
+            <select class="finp" id="fh-farmer" style="flex:1"><option value="">-- Farmer Chunein --</option></select>
+            <button class="btn btn-ghost btn-sm" onclick="prepNewFarmerModal();openModalTop('farmer-modal')" title="Naya farmer">＋</button>
+          </div>
+        </div>
+        <div class="fg2x"><div class="flbl">Bags *</div><input class="finp" id="fh-bags" type="number" min="0" placeholder="0" oninput="farhRecalc()"></div>
+        <div class="fg2x"><div class="flbl">Grade</div><select class="finp" id="fh-grade"></select></div>
+        <div class="fg2x"><div class="flbl">Weight 50kg (Qtl) — auto</div><input class="finp" id="fh-wt-bags" type="number" step="0.01" readonly style="background:#f1f5f9"></div>
+        <div class="fg2x"><div class="flbl">Kanta Weight (Qtl) *</div><input class="finp" id="fh-wt-kanta" type="number" step="0.01" min="0" placeholder="Actual tula" oninput="farhRecalc()"></div>
+        <div class="fg2x"><div class="flbl">Bill / Without Bill *</div><select class="finp" id="fh-bill"><option value="with_bill">Bill</option><option value="without_bill">Without Bill</option></select></div>
+        <div class="fg2x"><div class="flbl">Rate (₹/Qtl)</div><input class="finp" id="fh-rate" type="number" min="0" placeholder="0" oninput="farhRecalc()"></div>
+        <div class="fg2x"><div class="flbl">Amount (₹) <span style="color:var(--text3);font-weight:400">— Rate × Kanta Wt, edit ho sakta</span></div><input class="finp" id="fh-amount" type="number" min="0" placeholder="0"></div>
+        <div class="fg2x"><div class="flbl">Godown *</div><select class="finp" id="fh-godown" onchange="farhGodownChange()"><option value="">-- Godown --</option></select></div>
+        <div class="fg2x"><div class="flbl">Stack *</div><select class="finp" id="fh-stack"><option value="">-- Stack --</option></select></div>
+        <div class="fg2x" style="grid-column:1/-1"><div class="flbl">Note</div><input class="finp" id="fh-note" placeholder="Koi note (optional)"></div>
+      </div>
+    </div>
+    <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('farh-modal')">Cancel</button><button class="btn btn-green" onclick="saveFarhEntry()">💾 Save Entry</button></div></div>
   </div>
 </div>
 
@@ -1460,6 +1548,9 @@ function ensureDbShape(){
     if(l.parties&&l.parties.length) l.parties.forEach(p=>{ if(!p.lots) p.lots=[]; });
   });
   db.purchases.forEach(p=>{ if(!p.billType) p.billType='with_bill'; });
+  // Mera Farh (apni mandi) — bilkul alag record, baaki app par koi asar nahi
+  if(!db.farhFarmers) db.farhFarmers=[];
+  if(!db.farhEntries) db.farhEntries=[];
 }
 function loadDb(){
   try{ const s=localStorage.getItem('mmp_v2'); if(s) db=JSON.parse(s); }catch(e){}
@@ -5286,6 +5377,201 @@ function renderArtiyaWiseReport(purchases,liftings,fShop,fFrom,fTo){
 }
 
 // ── RENDER ALL ──
+// ════════════════════════════ MERA FARH (apni mandi — bilkul alag record) ════════════════════════════
+// NOTE: yeh module sirf db.farhFarmers / db.farhEntries use karta hai.
+// db.movements / db.purchases ko chhuta NAHI — isliye Dashboard/Godown/Stack/Reports par koi asar nahi.
+const getFarmerName=id=>(db.farhFarmers.find(f=>f.id===id)||{name:'—'}).name;
+
+function populateFarhSelects(){
+  // Farmer selects (modal + filter)
+  const farmers=[...(db.farhFarmers||[])].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const fmOpts=farmers.map(f=>`<option value="${f.id}">${escHtml(f.name)}</option>`).join('');
+  const mSel=E('fh-farmer'); if(mSel){ const v=mSel.value; mSel.innerHTML='<option value="">-- Farmer Chunein --</option>'+fmOpts; if(v) mSel.value=v; }
+  const flSel=E('ff-farmer'); if(flSel){ const v=flSel.value; flSel.innerHTML='<option value="">Sab</option>'+fmOpts; if(v) flSel.value=v; }
+  // Godown selects (modal + filter) — wahi godowns jo app mein hain
+  const gOpts=db.godowns.map(g=>`<option value="${g.id}">${escHtml(g.name)}</option>`).join('');
+  const gSel=E('fh-godown'); if(gSel){ const v=gSel.value; gSel.innerHTML='<option value="">-- Godown --</option>'+gOpts; if(v) gSel.value=v; }
+  const gfSel=E('ff-godown'); if(gfSel){ const v=gfSel.value; gfSel.innerHTML='<option value="">Sab</option>'+gOpts; if(v) gfSel.value=v; }
+  // Grade select
+  const grSel=E('fh-grade'); if(grSel){ const v=grSel.value; grSel.innerHTML=(db.settings.grades||['A','B','C','Mixed']).map(g=>`<option value="${g}">${escHtml(g)}</option>`).join(''); if(v) grSel.value=v; }
+}
+function farhGodownChange(){
+  const g=V('fh-godown'); const sEl=E('fh-stack'); if(!sEl) return;
+  const cur=sEl.value;
+  const stacks=db.stacks.filter(s=>!g||s.godownId===g).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  sEl.innerHTML='<option value="">-- Stack --</option>'+stacks.map(s=>`<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
+  if(cur&&[...sEl.options].some(o=>o.value===cur)) sEl.value=cur;
+}
+function farhRecalc(){
+  const bags=parseInt(V('fh-bags'),10)||0;
+  const wtBags=Math.round(bags*0.5*100)/100; // 1 bag = 50kg
+  setV('fh-wt-bags', wtBags? wtBags.toFixed(2):'');
+  const rate=parseFloat(V('fh-rate'))||0;
+  const kanta=parseFloat(V('fh-wt-kanta'))||0;
+  // amount auto = rate × kanta wt (user edit kar sakta hai)
+  const amt=Math.round(rate*kanta*100)/100;
+  setV('fh-amount', amt? String(amt):'');
+}
+function prepNewFarhModal(){
+  clr('farh-edit-id','fh-bags','fh-wt-bags','fh-wt-kanta','fh-rate','fh-amount','fh-note');
+  populateFarhSelects();
+  setV('fh-date', today());
+  setV('fh-farmer',''); setV('fh-bill','with_bill');
+  setV('fh-godown', defaultGodownId()); farhGodownChange();
+  const grSel=E('fh-grade'); if(grSel&&grSel.options.length) grSel.selectedIndex=0;
+  E('farh-modal-title').textContent='🌾 Naya Farh Entry';
+}
+function saveFarhEntry(){
+  const farmerId=V('fh-farmer');
+  if(!farmerId) return toast('Farmer chunein','e');
+  const bags=parseInt(V('fh-bags'),10)||0;
+  if(bags<=0) return toast('Bags daalein','e');
+  const godownId=V('fh-godown'); if(!godownId) return toast('Godown chunein','e');
+  const stackId=V('fh-stack'); if(!stackId) return toast('Stack chunein','e');
+  const editId=V('farh-edit-id');
+  const wtBags=Math.round(bags*0.5*100)/100;
+  const rec={
+    id:editId||uid(),
+    date:V('fh-date')||today(),
+    farmerId,
+    bags,
+    grade:V('fh-grade'),
+    wtBags,
+    wtKanta:Math.round((parseFloat(V('fh-wt-kanta'))||0)*100)/100,
+    billType:V('fh-bill')||'with_bill',
+    rate:parseFloat(V('fh-rate'))||0,
+    amount:Math.round((parseFloat(V('fh-amount'))||0)*100)/100,
+    godownId, stackId,
+    note:V('fh-note')||'',
+    createdAt:editId?(db.farhEntries.find(x=>x.id===editId)||{}).createdAt:new Date().toISOString()
+  };
+  if(editId){ const i=db.farhEntries.findIndex(x=>x.id===editId); if(i>-1) db.farhEntries[i]=rec; }
+  else db.farhEntries.push(rec);
+  saveDb(); renderFarh();
+  closeModal('farh-modal');
+  toast(editId?'Farh entry update ho gayi! ✅':'Farh entry save ho gayi! ✅');
+}
+function editFarhEntry(id){
+  const r=db.farhEntries.find(x=>x.id===id); if(!r) return;
+  populateFarhSelects();
+  setV('farh-edit-id',id);
+  setV('fh-date',r.date); setV('fh-farmer',r.farmerId); setV('fh-bags',r.bags);
+  setV('fh-grade',r.grade); setV('fh-wt-kanta',r.wtKanta); setV('fh-bill',r.billType||'with_bill');
+  setV('fh-rate',r.rate); setV('fh-amount',r.amount); setV('fh-note',r.note||'');
+  setV('fh-godown',r.godownId); farhGodownChange(); setV('fh-stack',r.stackId);
+  farhRecalc(); setV('fh-amount',r.amount); // recalc ke baad saved amount wapas
+  E('farh-modal-title').textContent='✏️ Farh Entry Edit';
+  openModal('farh-modal');
+}
+function deleteFarhEntry(id){
+  confirmDel('Ye Farh entry delete karein?',()=>{
+    db.farhEntries=db.farhEntries.filter(x=>x.id!==id);
+    saveDb(); renderFarh(); toast('Farh entry delete ho gayi','i');
+  });
+}
+// ── Farmer CRUD ──
+function prepNewFarmerModal(){
+  clr('farmer-edit-id','fm-name','fm-phone','fm-village','fm-note');
+  E('farmer-modal-title').textContent='👨‍🌾 Naya Farmer Add';
+}
+function saveFarmer(){
+  const name=(V('fm-name')||'').trim();
+  if(!name) return toast('Farmer ka naam daalein','e');
+  const editId=V('farmer-edit-id');
+  const rec={ id:editId||uid(), name, phone:V('fm-phone')||'', village:V('fm-village')||'', note:V('fm-note')||'',
+    createdAt:editId?(db.farhFarmers.find(x=>x.id===editId)||{}).createdAt:new Date().toISOString() };
+  if(editId){ const i=db.farhFarmers.findIndex(x=>x.id===editId); if(i>-1) db.farhFarmers[i]=rec; }
+  else db.farhFarmers.push(rec);
+  saveDb(); populateFarhSelects(); renderFarh();
+  // agar farh-modal khula hai (quick add), naya farmer usme select kar do
+  const fhSel=E('fh-farmer'); if(fhSel && E('farh-modal').classList.contains('open')) fhSel.value=rec.id;
+  closeModal('farmer-modal');
+  toast(editId?'Farmer update ho gaya! ✅':'Farmer add ho gaya! ✅');
+}
+function editFarmer(id){
+  const f=db.farhFarmers.find(x=>x.id===id); if(!f) return;
+  setV('farmer-edit-id',id); setV('fm-name',f.name); setV('fm-phone',f.phone||''); setV('fm-village',f.village||''); setV('fm-note',f.note||'');
+  E('farmer-modal-title').textContent='✏️ Farmer Edit';
+  openModal('farmer-modal');
+}
+function deleteFarmer(id){
+  const used=db.farhEntries.filter(e=>e.farmerId===id).length;
+  confirmDel('Ye Farmer delete karein?'+(used?` Iski ${used} farh entries bhi hain (woh delete nahi hongi, par farmer ka naam hat jayega).`:''),()=>{
+    db.farhFarmers=db.farhFarmers.filter(x=>x.id!==id);
+    saveDb(); populateFarhSelects(); renderFarh(); toast('Farmer delete ho gaya','i');
+  });
+}
+function renderFarmers(){
+  const tb=E('farmers-tbody'); if(!tb) return;
+  const farmers=[...(db.farhFarmers||[])].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  E('farmers-count').textContent=farmers.length;
+  if(!farmers.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:18px">Koi farmer nahi. "Naya Farmer" se add karein.</td></tr>'; return; }
+  tb.innerHTML=farmers.map(f=>{
+    const ents=db.farhEntries.filter(e=>e.farmerId===f.id);
+    const bags=ents.reduce((s,e)=>s+(+e.bags||0),0);
+    return `<tr>
+      <td><strong>${escHtmlSafe(f.name)}</strong></td>
+      <td>${escHtmlSafe(f.phone)||'-'}</td>
+      <td>${escHtmlSafe(f.village)||'-'}</td>
+      <td style="text-align:right">${fmt(ents.length)}</td>
+      <td style="text-align:right;font-weight:700;color:var(--orange)">${fmt(bags)}</td>
+      <td>${escHtmlSafe(f.note)||'-'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="editFarmer('${f.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteFarmer('${f.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+function farhFilteredEntries(){
+  const ff=V('ff-farmer'), fb=V('ff-bill'), fg=V('ff-godown'), from=V('ff-from'), to=V('ff-to'), q=(V('ff-search')||'').toLowerCase().trim();
+  return (db.farhEntries||[]).filter(e=>{
+    if(ff && e.farmerId!==ff) return false;
+    if(fb && (e.billType||'with_bill')!==fb) return false;
+    if(fg && e.godownId!==fg) return false;
+    if(from && (e.date||'')<from) return false;
+    if(to && (e.date||'')>to) return false;
+    if(q){
+      const hay=[getFarmerName(e.farmerId),e.grade,getStackName(e.stackId),getGodownName(e.godownId)].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  }).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
+}
+function renderFarh(){
+  populateFarhSelects();
+  renderFarmers();
+  const tb=E('farh-tbody'); if(!tb) return;
+  const rows=farhFilteredEntries();
+  E('farh-count').textContent=rows.length;
+  // summary KPIs
+  let tBags=0,tWtBags=0,tKanta=0,tAmt=0,tBill=0,tNoBill=0;
+  rows.forEach(e=>{ tBags+=(+e.bags||0); tWtBags+=(+e.wtBags||0); tKanta+=(+e.wtKanta||0); tAmt+=(+e.amount||0); if((e.billType||'with_bill')==='with_bill') tBill++; else tNoBill++; });
+  const sum=E('farh-summary');
+  if(sum) sum.innerHTML=
+    `<div class="sc" style="--cc:var(--green)"><span class="si">🌾</span><div class="sl">Total Bags</div><div class="sv">${fmt(tBags)}</div><div class="ss">${fmt(rows.length)} entries</div></div>`+
+    `<div class="sc" style="--cc:var(--blue2)"><span class="si">⚖️</span><div class="sl">Kanta Weight</div><div class="sv">${fmtQtl(tKanta)}</div><div class="ss">qtl (50kg: ${fmtQtl(tWtBags)})</div></div>`+
+    `<div class="sc" style="--cc:#0f766e"><span class="si">💰</span><div class="sl">Total Amount</div><div class="sv">${rupee(tAmt)}</div><div class="ss">sab entries</div></div>`+
+    `<div class="sc" style="--cc:#d97706"><span class="si">🧾</span><div class="sl">Bill / Without</div><div class="sv">${fmt(tBill)} / ${fmt(tNoBill)}</div><div class="ss">entries</div></div>`;
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:18px">Koi farh entry nahi. "Naya Farh Entry" se add karein.</td></tr>'; return; }
+  tb.innerHTML=rows.map(e=>{
+    const bill=(e.billType||'with_bill')==='with_bill'
+      ? '<span class="badge badge-green">Bill</span>'
+      : '<span class="badge badge-amber">Without</span>';
+    return `<tr>
+      <td>${fmtDate(e.date)}</td>
+      <td><strong>${escHtmlSafe(getFarmerName(e.farmerId))}</strong></td>
+      <td style="text-align:right;font-weight:700;color:var(--orange)">${fmt(e.bags)}</td>
+      <td><span class="badge badge-blue">${escHtmlSafe(e.grade)||'-'}</span></td>
+      <td style="text-align:right">${fmtQtl(e.wtBags)}</td>
+      <td style="text-align:right;font-weight:700;color:var(--blue2)">${fmtQtl(e.wtKanta)}</td>
+      <td>${bill}</td>
+      <td style="text-align:right">${e.rate?rupee(e.rate):'-'}</td>
+      <td style="text-align:right;font-weight:700">${e.amount?rupee(e.amount):'-'}</td>
+      <td><span class="badge badge-blue">${escHtmlSafe(getGodownName(e.godownId))}</span></td>
+      <td>${escHtmlSafe(getStackName(e.stackId))}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="editFarhEntry('${e.id}')">✏️</button> <button class="btn btn-red btn-sm" onclick="deleteFarhEntry('${e.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+
 function renderAll(){
   renderDispatchTable();
   renderDashboard();
@@ -5297,6 +5583,7 @@ function renderAll(){
   renderBardanaTable();
   renderPurchaseTable();
   renderLiftingTable();
+  renderFarh();
   if(currentTab==='reports') renderCurrentReport();
 }
 
