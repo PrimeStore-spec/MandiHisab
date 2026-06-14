@@ -1095,23 +1095,9 @@ main{max-width:100%;padding:12px 10px;}
         <div class="fg2x"><div class="flbl">Gaadi Number *</div><input class="finp" id="l-veh" placeholder="PB-01-AB-1234"></div>
       </div>
       <div class="divider"></div>
-      <div class="sec-title">🏪 Parties is truck par</div>
-      <div class="fgrid fg3" style="align-items:flex-end">
-        <div class="fg2x"><div class="flbl">Party (Artiya) add karo</div><div style="display:flex;gap:6px"><select class="finp" id="l-add-shop" style="flex:1"><option value="">-- Shop Chunein --</option></select><button type="button" class="btn btn-green" style="white-space:nowrap;padding:0 12px" onclick="quickAddShop('l-add-shop')" title="Naya Artiya yahin banao">＋ Naya</button></div></div>
-        <div class="fg2x"><button type="button" class="btn btn-blue" style="width:100%" onclick="addLiftingParty()">＋ Is truck par add</button></div>
-      </div>
-      <div id="l-parties-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;min-height:28px"></div>
-      <div id="l-lot-section">
-        <div class="sec-title">📦 Har party ke rate-wise lots</div>
-        <div id="l-lot-list"></div>
-      </div>
-      <div id="l-no-stock" style="display:none;background:var(--rbg);border:1px solid var(--rb);border-radius:var(--r2);padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:12px">
-        ⚠️ Koi party add nahi / stock nahi — pehle party add karein.
-      </div>
-      <div class="divider"></div>
-      <!-- DESTINATION: lift karke kahan? -->
+      <!-- DESTINATION: lift karke kahan? (ab beech me — Godown default, time bachat) -->
       <div class="sec-title">🎯 Lift karke kahan ja raha hai?</div>
-      <input type="hidden" id="ld-kind" value="none">
+      <input type="hidden" id="ld-kind" value="godown">
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <button type="button" class="btn btn-ghost" id="ld-kind-none" style="flex:1;min-width:120px" onclick="setLiftDest('none')">📋 Sirf Lifting</button>
         <button type="button" class="btn btn-ghost" id="ld-kind-sale" style="flex:1;min-width:120px" onclick="setLiftDest('sale')">🤝 Sale (Party)</button>
@@ -1136,11 +1122,25 @@ main{max-width:100%;padding:12px 10px;}
       <!-- GODOWN destination fields (per-lot placement) -->
       <div id="ld-godown-fields" style="display:none">
         <div style="background:var(--bluebg);border:1px solid #c5d8f8;border-radius:var(--r2);padding:10px 14px;margin-bottom:10px;font-size:12.5px;color:var(--blue2);line-height:1.5">
-          📌 <strong>Har rate / grade ke maal ka godown + stack alag-alag chunein</strong> — upar lot list mein har row ke neeche "🏬 Is maal ka thikana" wala option aa gaya hai.<br>
+          📌 <strong>Har rate / grade ke maal ka godown + stack alag-alag chunein</strong> — neeche lot list mein har row ke neeche "🏬 Is maal ka thikana" wala option aa jayega.<br>
           Jaise ek hi gaadi mein A grade aur B grade mix aaya ho, to A grade ko ek stack par aur B grade ko doosre stack par laga sakte hain. Report bilkul sahi banegi.
         </div>
         <div id="ld-godown-summary" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
         <div class="fg2x"><div class="flbl">Godown Destination (optional)</div><input class="finp" id="ld-gdest" placeholder="Jagah / village (sab par ek jaisa)"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="sec-title">🏪 Parties is truck par</div>
+      <div class="fgrid fg3" style="align-items:flex-end">
+        <div class="fg2x"><div class="flbl">Party (Artiya) add karo</div><div style="display:flex;gap:6px"><select class="finp" id="l-add-shop" style="flex:1"><option value="">-- Shop Chunein --</option></select><button type="button" class="btn btn-green" style="white-space:nowrap;padding:0 12px" onclick="quickAddShop('l-add-shop')" title="Naya Artiya yahin banao">＋ Naya</button></div></div>
+        <div class="fg2x"><button type="button" class="btn btn-blue" style="width:100%" onclick="addLiftingParty()">＋ Is truck par add</button></div>
+      </div>
+      <div id="l-parties-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;min-height:28px"></div>
+      <div id="l-lot-section">
+        <div class="sec-title">📦 Har party ke rate-wise lots</div>
+        <div id="l-lot-list"></div>
+      </div>
+      <div id="l-no-stock" style="display:none;background:var(--rbg);border:1px solid var(--rb);border-radius:var(--r2);padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:12px">
+        ⚠️ Koi party add nahi / stock nahi — pehle party add karein.
       </div>
       <div class="divider"></div>
       <div class="sec-title">🚛 Vehicle & Logistics</div>
@@ -2038,7 +2038,7 @@ function openLiftingModalNew(){
   clr('ld-buyer','ld-address','ld-rate','ld-qtl','ld-partywt','ld-amount','ld-unload','ld-due','ld-gdest');
   if(E('ld-profit-hint')) E('ld-profit-hint').textContent='';
   refreshLiftingDestSelects();
-  setLiftDest('none');
+  setLiftDest('godown'); // default Godown selected (time bachat)
   if(E('lifting-modal-title')) E('lifting-modal-title').textContent='🚛 Naya Lifting Entry';
   if(E('l-summary-box')) E('l-summary-box').style.display='none';
   if(E('l-total-preview')){ E('l-total-preview').textContent='Party add karke lots select karein'; E('l-total-preview').style.cssText='font-size:13px;color:var(--text3)'; }
@@ -2138,6 +2138,12 @@ function lotQtyChangeParty(shopId,purchaseId,max){
 
 // ── PER-LOT GODOWN PLACEMENT (ek lot ko alag-alag stack par baant sakte hain) ──
 // part.place[lotId] = [{godownId,stackId,bags}, ...]  (array — multi-stack split)
+// Default godown = "Godown No. 1" (jo bhi pehla match ho), warna pehla godown
+function defaultGodownId(){
+  const gs=db.godowns||[];
+  const g1=gs.find(g=>/godown\s*no\.?\s*0*1\b/i.test(g.name||'')) || gs.find(g=>/(^|\D)1(\D|$)/.test(g.name||''));
+  return ((g1||gs[0])||{}).id||'';
+}
 function liftLotGetPlaces(shopId,lotId){
   const part=liftingPartiesState.find(p=>p.shopId===shopId);
   if(!part) return [];
@@ -2148,7 +2154,7 @@ function liftLotGetPlaces(shopId,lotId){
     if(arr && (arr.godownId||arr.stackId)) arr=[{godownId:arr.godownId||'',stackId:arr.stackId||'',bags:0}];
     else arr=[];
   }
-  if(!arr.length) arr=[{godownId:'',stackId:'',bags:0}];
+  if(!arr.length) arr=[{godownId:defaultGodownId(),stackId:'',bags:0}];
   part.place[lotId]=arr;
   return arr;
 }
@@ -2230,6 +2236,7 @@ function liftLotStackChange(shopId,lotId,j){
   const places=liftLotGetPlaces(shopId,lotId);
   places[j]=places[j]||{godownId:'',stackId:'',bags:0};
   places[j].stackId=V('lg-s-'+shopId+'-'+lotId+'-'+j);
+  liftStackOverflowAlert(places[j].stackId); // stack select karte hi full ho toh turant batao
   renderLiftingModalParties(); // capacity-text dikhane ke liye row dobara banao
 }
 function liftLotPlaceBagsChange(shopId,lotId,j){
@@ -2238,12 +2245,35 @@ function liftLotPlaceBagsChange(shopId,lotId,j){
   let v=parseInt(V('lg-b-'+shopId+'-'+lotId+'-'+j),10)||0; if(v<0) v=0;
   places[j].bags=v;
   liftRefreshLotStatus(shopId,lotId); updateLiftGodownSummary();
+  liftStackOverflowAlert(places[j].stackId); // bags badhate hi capacity cross ho toh turant popup
+}
+// Usi time capacity check: stack par (modal ke saare placements + pehle se bhara) capacity se zyada ho to popup
+function liftStackOverflowAlert(stackId){
+  if(!stackId) return false;
+  const st=db.stacks.find(s=>s.id===stackId); if(!st) return false;
+  const cap=+st.capacity||0; if(!cap) return false;
+  const exclLift=V('l-edit-id')||'__none__';
+  let addBags=0;
+  liftingPartiesState.forEach(part=>{
+    Object.keys(part.sel||{}).forEach(lid=>{
+      const b=parseInt(part.sel[lid],10)||0; if(b<=0) return;
+      const norm=liftNormalizedPlaces(part,lid);
+      norm.places.forEach(pl=>{ if(pl.stackId===stackId) addBags+=pl.bags; });
+    });
+  });
+  const base=stackBaseFill(stackId,exclLift);
+  const after=base+addBags;
+  if(after>cap){
+    toast(`⛔ ${getStackName(stackId)} full ho chuka hai! Capacity ${fmt(cap)} bags, par ${fmt(after)} ho jayenge (${fmt(after-cap)} zyada). Inhe doosre stack par daalein.`,'e');
+    return true;
+  }
+  return false;
 }
 function liftLotAddPlace(shopId,lotId){
   const places=liftLotGetPlaces(shopId,lotId);
   const lifted=liftLotLiftedBags(shopId,lotId);
   if(places.length===1 && !(parseInt(places[0].bags,10)>0)) places[0].bags=lifted;
-  places.push({godownId:'',stackId:'',bags:0});
+  places.push({godownId:defaultGodownId(),stackId:'',bags:0});
   renderLiftingModalParties();
 }
 function liftLotRemovePlace(shopId,lotId,j){
