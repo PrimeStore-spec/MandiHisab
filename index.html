@@ -1674,9 +1674,16 @@ function handleQuickAddReturn(type,newId){
   return true;
 }
 
-// Close on overlay click
-document.querySelectorAll('.ov').forEach(ov=>{
-  ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.remove('open'); });
+// Bahar click karne se window band NAHI hogi (galti se data na ude). Sirf ESC se band hoti hai.
+// ESC dabane par sabse upar (last khuli) window band hoti hai.
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape') return;
+  const open=[...document.querySelectorAll('.ov.open')];
+  if(!open.length) return;
+  // jis window ka z-index sabse zyada ho (top-most) usi ko band karo
+  let top=open[0];
+  open.forEach(o=>{ if((parseInt(o.style.zIndex,10)||200) >= (parseInt(top.style.zIndex,10)||200)) top=o; });
+  closeModal(top.id);
 });
 
 // ── TOAST ──
