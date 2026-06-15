@@ -709,6 +709,8 @@ main{max-width:100%;padding:12px 10px;}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
     <div class="stl">🌾 Mera Farh / <span>Apni Mandi (alag record)</span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-blue btn-sm" onclick="openFarhImport()">⬆️ Import</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportFarhCSV()">⬇️ Export</button>
       <button class="btn btn-ghost btn-sm" onclick="prepNewFarmerModal();openModal('farmer-modal')">👨‍🌾 Naya Farmer</button>
       <button class="btn btn-green" onclick="prepNewFarhModal();openModal('farh-modal')">＋ Naya Farh Entry</button>
     </div>
@@ -995,6 +997,31 @@ main{max-width:100%;padding:12px 10px;}
       </div>
     </div>
     <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('farh-modal')">Cancel</button><button class="btn btn-green" onclick="saveFarhEntry()">💾 Save Entry</button></div></div>
+  </div>
+</div>
+
+<!-- FARH IMPORT MODAL (bulk) -->
+<div class="ov" id="farh-import-modal">
+  <div class="modal-box modal-lg">
+    <div class="mh"><div class="mt">⬆️ Mera Farh — Bulk Import</div><button class="mx" onclick="closeModal('farh-import-modal')">✕</button></div>
+    <div class="mb">
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--r2);padding:10px 12px;margin-bottom:12px;font-size:12px;color:#047857;line-height:1.6">
+        📌 Yeh sirf <b>Mera Farh</b> me add hoga — baaki app par koi asar nahi.<br>
+        <b>Columns:</b> <code>date, farmer, bags, grade, bill, rate, kanta_wt, amount, godown, stack, note</code><br>
+        • <b>farmer</b> aur <b>bags</b> zaroori. Naya farmer naam ho to <b>khud ban jayega</b>.<br>
+        • <b>godown / stack</b> naam app ke maujood godown/stack se match honge; na mile to khaali rahega (baad me edit kar lena).<br>
+        • <b>bill</b>: <code>with</code> / <code>without</code> (khaali = with bill). <b>amount</b> khaali ho to rate × kanta_wt khud lag jayega.<br>
+        • Date: <b>YYYY-MM-DD</b>, <b>DD/MM/YYYY</b>, <b>29-Mar-2026</b> ya Excel serial.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+        <label class="btn btn-blue btn-sm" style="cursor:pointer">📂 CSV / Excel File Chunein<input type="file" accept=".csv,.xlsx,.xls" style="display:none" id="farh-import-inp" onchange="handleFarhImportFile(event)"></label>
+        <button class="btn btn-ghost btn-sm" onclick="downloadFarhTemplate()">📄 Template Download</button>
+        <span id="farh-import-fname" style="font-size:12px;color:var(--text3)"></span>
+      </div>
+      <div id="farh-import-stats" style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--blue2)"></div>
+      <div id="farh-import-preview" class="tsc" style="max-height:320px;overflow:auto"></div>
+    </div>
+    <div class="mf"><div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal('farh-import-modal')">Cancel</button><button class="btn btn-green" id="farh-import-btn" style="display:none" onclick="runFarhImport()">✅ Import Karo</button></div></div>
   </div>
 </div>
 
@@ -5522,6 +5549,192 @@ function deleteFarhEntry(id){
   confirmDel('Ye Farh entry delete karein?',()=>{
     db.farhEntries=db.farhEntries.filter(x=>x.id!==id);
     saveDb(); renderFarh(); toast('Farh entry delete ho gayi','i');
+  });
+}
+// ── Mera Farh: EXPORT ──
+function exportFarhCSV(){
+  const rows=farhFilteredEntries();
+  if(!rows.length) return toast('Export karne ke liye koi farh entry nahi','e');
+  const headers=['date','farmer','bags','grade','bill','rate','kanta_wt','wt_50kg','amount','godown','stack','note'];
+  const esc=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const lines=[headers.join(',')];
+  rows.forEach(e=>{
+    lines.push([
+      e.date||'', getFarmerName(e.farmerId), e.bags||0, e.grade||'',
+      (e.billType||'with_bill')==='without_bill'?'without':'with',
+      e.rate||0, e.wtKanta||0, e.wtBags||0, e.amount||0,
+      getGodownName(e.godownId), getStackName(e.stackId), e.note||''
+    ].map(esc).join(','));
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('\ufeff'+lines.join('\n'));
+  a.download='mera_farh_'+today()+'.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Farh export ho gaya ✅ ('+rows.length+' entries)');
+}
+// ── Mera Farh: IMPORT ──
+let farhImportRows=[];
+function openFarhImport(){
+  farhImportRows=[];
+  if(E('farh-import-inp')) E('farh-import-inp').value='';
+  if(E('farh-import-fname')) E('farh-import-fname').textContent='';
+  if(E('farh-import-stats')) E('farh-import-stats').textContent='';
+  if(E('farh-import-preview')) E('farh-import-preview').innerHTML='';
+  if(E('farh-import-btn')) E('farh-import-btn').style.display='none';
+  openModal('farh-import-modal');
+}
+function downloadFarhTemplate(){
+  const headers=['date','farmer','bags','grade','bill','rate','kanta_wt','amount','godown','stack','note'];
+  const g=(db.godowns[0]||{}).name||'Godown 1';
+  const s=(db.stacks.find(x=>x.godownId===(db.godowns[0]||{}).id)||{}).name||'Stack 1';
+  const sample=[
+    ['2026-06-15','Ramesh Kumar','40','A','with','1950','20.05','39097.50',g,s,'apni mandi'],
+    ['2026-06-15','Sukhdev Singh','25','B','without','1880','12.40','23312',g,s,'']
+  ];
+  const esc=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const csv='\ufeff'+headers.join(',')+'\n'+sample.map(r=>r.map(esc).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='mera_farh_template.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function farhFindCol(headers,keys){ for(let i=0;i<headers.length;i++){ if(keys.some(k=>headers[i]===k||headers[i].includes(k))) return i; } return -1; }
+function handleFarhImportFile(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  if(E('farh-import-fname')) E('farh-import-fname').textContent='⏳ '+file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let wb;
+    try{
+      const buf=e.target.result;
+      if(file.name.toLowerCase().endsWith('.csv')){
+        const txt=new TextDecoder('utf-8').decode(buf);
+        wb=XLSX.read(txt,{type:'string',raw:true});
+      } else wb=XLSX.read(new Uint8Array(buf),{type:'array',raw:true});
+    }catch(err){ toast('File read error: '+((err&&err.message)||err),'e'); return; }
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const grid=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+    // header row dhoondo: jisme 'farmer'/'kisaan' aur 'bag' ho
+    let hi=-1;
+    for(let i=0;i<Math.min(grid.length,15);i++){
+      const lc=grid[i].map(c=>String(c==null?'':c).toLowerCase());
+      if(lc.some(c=>c.includes('farmer')||c.includes('kisaan')||c.includes('naam')||c.includes('name')) && lc.some(c=>c.includes('bag'))){ hi=i; break; }
+    }
+    if(hi<0){ toast('FARMER + BAGS column nahi mile! Template ke hisaab se sheet banayein.','e'); if(E('farh-import-fname')) E('farh-import-fname').textContent='❌ '+file.name; return; }
+    const headers=grid[hi].map(h=>String(h==null?'':h).toLowerCase().trim());
+    const ci={
+      date:farhFindCol(headers,['date','tareekh','tarikh']),
+      farmer:farhFindCol(headers,['farmer','kisaan','naam','name','party','firm']),
+      bags:farhFindCol(headers,['bag']),
+      grade:farhFindCol(headers,['grade']),
+      bill:farhFindCol(headers,['bill']),
+      rate:farhFindCol(headers,['rate']),
+      kanta:farhFindCol(headers,['kanta','net','weight','wt']),
+      amount:farhFindCol(headers,['amount','amt','total']),
+      godown:farhFindCol(headers,['godown','warehouse']),
+      stack:farhFindCol(headers,['stack','dheri','dher']),
+      note:farhFindCol(headers,['note','remark'])
+    };
+    if(ci.farmer<0||ci.bags<0){ toast('FARMER ya BAGS column nahi mila!','e'); return; }
+    const num=v=>{ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
+    const out=[];
+    for(let i=hi+1;i<grid.length;i++){
+      const r=grid[i]; if(!r||!r.some(c=>c!==''&&c!=null)) continue;
+      const farmer=String(r[ci.farmer]==null?'':r[ci.farmer]).trim();
+      if(!farmer || /^total/i.test(farmer)) continue;
+      const bags=Math.round(num(r[ci.bags]))||0;
+      if(bags<=0) continue;
+      const billRaw=ci.bill>=0?String(r[ci.bill]==null?'':r[ci.bill]).toLowerCase():'';
+      const bill=/without|w\/o|nobill|no bill|wb|kacha/.test(billRaw)?'without_bill':'with_bill';
+      out.push({
+        date: ci.date>=0?normalizeImportedDate(r[ci.date])||today():today(),
+        farmer,
+        bags,
+        grade: ci.grade>=0?String(r[ci.grade]==null?'':r[ci.grade]).trim():'',
+        bill,
+        rate: ci.rate>=0?num(r[ci.rate]):0,
+        kanta: ci.kanta>=0?Math.round(num(r[ci.kanta])*100)/100:0,
+        amount: ci.amount>=0?Math.round(num(r[ci.amount])*100)/100:0,
+        godown: ci.godown>=0?String(r[ci.godown]==null?'':r[ci.godown]).trim():'',
+        stack: ci.stack>=0?String(r[ci.stack]==null?'':r[ci.stack]).trim():'',
+        note: ci.note>=0?String(r[ci.note]==null?'':r[ci.note]).trim():''
+      });
+    }
+    if(!out.length){ toast('Koi valid row nahi mili!','e'); if(E('farh-import-fname')) E('farh-import-fname').textContent='❌ '+file.name; return; }
+    farhImportRows=out;
+    if(E('farh-import-fname')) E('farh-import-fname').textContent='✅ '+file.name+' ('+out.length+' rows)';
+    renderFarhImportPreview();
+  };
+  reader.readAsArrayBuffer(file);
+}
+function farhMatchGodown(name){
+  if(!name) return '';
+  const n=name.toLowerCase().trim();
+  const g=db.godowns.find(x=>(x.name||'').toLowerCase().trim()===n)||db.godowns.find(x=>(x.name||'').toLowerCase().includes(n));
+  return g?g.id:'';
+}
+function farhMatchStack(name,godownId){
+  if(!name) return '';
+  const n=name.toLowerCase().trim();
+  const pool=godownId?db.stacks.filter(s=>s.godownId===godownId):db.stacks;
+  const s=pool.find(x=>(x.name||'').toLowerCase().trim()===n)||pool.find(x=>(x.name||'').toLowerCase().includes(n));
+  return s?s.id:'';
+}
+function renderFarhImportPreview(){
+  const rows=farhImportRows;
+  const totBags=rows.reduce((s,r)=>s+(r.bags||0),0);
+  let gMatch=0,sMatch=0,newFarmers=0;
+  const existNames=new Set((db.farhFarmers||[]).map(f=>(f.name||'').toLowerCase().trim()));
+  const seen=new Set();
+  rows.forEach(r=>{
+    const gid=farhMatchGodown(r.godown); if(gid) gMatch++;
+    if(farhMatchStack(r.stack,gid)) sMatch++;
+    const key=r.farmer.toLowerCase().trim();
+    if(!existNames.has(key) && !seen.has(key)){ newFarmers++; seen.add(key); }
+  });
+  if(E('farh-import-stats')) E('farh-import-stats').innerHTML=
+    `📦 ${rows.length} entries · ${fmt(totBags)} bags &nbsp;|&nbsp; 🏬 Godown match: ${gMatch}/${rows.length} · Stack match: ${sMatch}/${rows.length} &nbsp;|&nbsp; 👨‍🌾 Naye farmer: ${newFarmers}`;
+  const head='<tr><th>Date</th><th>Farmer</th><th style="text-align:right">Bags</th><th>Grade</th><th>Bill</th><th style="text-align:right">Rate</th><th style="text-align:right">Kanta</th><th>Godown</th><th>Stack</th></tr>';
+  const body=rows.slice(0,60).map(r=>{
+    const gid=farhMatchGodown(r.godown); const sid=farhMatchStack(r.stack,gid);
+    const gTxt=gid?escHtml(getGodownName(gid)):(r.godown?`<span style="color:var(--red)">${escHtml(r.godown)}?</span>`:'<span style="color:var(--text3)">—</span>');
+    const sTxt=sid?escHtml(getStackName(sid)):(r.stack?`<span style="color:var(--red)">${escHtml(r.stack)}?</span>`:'<span style="color:var(--text3)">—</span>');
+    return `<tr><td>${escHtml(r.date)}</td><td><strong>${escHtml(r.farmer)}</strong></td><td style="text-align:right">${fmt(r.bags)}</td><td>${escHtml(r.grade)||'-'}</td><td>${r.bill==='without_bill'?'Without':'Bill'}</td><td style="text-align:right">${r.rate?fmt(r.rate):'-'}</td><td style="text-align:right">${r.kanta?fmtQtl(r.kanta):'-'}</td><td>${gTxt}</td><td>${sTxt}</td></tr>`;
+  }).join('');
+  const more=rows.length>60?`<tr><td colspan="9" style="text-align:center;color:var(--text3)">... ${rows.length-60} aur</td></tr>`:'';
+  if(E('farh-import-preview')) E('farh-import-preview').innerHTML=`<table><thead>${head}</thead><tbody>${body}${more}</tbody></table>`;
+  if(E('farh-import-btn')) E('farh-import-btn').style.display=rows.length?'block':'none';
+}
+function runFarhImport(){
+  const rows=farhImportRows;
+  if(!rows.length) return toast('Koi row nahi!','e');
+  confirmDel(`${rows.length} farh entries import karein? (sirf Mera Farh me add hongi)`,()=>{
+    // farmer name -> id (existing ya naya banao)
+    const nameToId={};
+    (db.farhFarmers||[]).forEach(f=>{ nameToId[(f.name||'').toLowerCase().trim()]=f.id; });
+    let added=0,createdFarmers=0;
+    rows.forEach(r=>{
+      const key=r.farmer.toLowerCase().trim();
+      let fid=nameToId[key];
+      if(!fid){
+        const nf={ id:uid(), name:r.farmer, phone:'', village:'', note:'', createdAt:new Date().toISOString() };
+        db.farhFarmers.push(nf); nameToId[key]=nf.id; fid=nf.id; createdFarmers++;
+      }
+      const gid=farhMatchGodown(r.godown);
+      const sid=farhMatchStack(r.stack,gid);
+      const wtBags=Math.round(r.bags*0.5*100)/100;
+      const amount=r.amount>0?r.amount:Math.round(r.rate*r.kanta*100)/100;
+      db.farhEntries.push({
+        id:uid(), date:r.date, farmerId:fid, bags:r.bags, grade:r.grade,
+        wtBags, wtKanta:r.kanta, billType:r.bill, rate:r.rate, amount,
+        godownId:gid, stackId:sid, note:r.note||'',
+        createdAt:new Date().toISOString()
+      });
+      added++;
+    });
+    saveDb(); renderFarh();
+    closeModal('farh-import-modal');
+    toast(`✅ ${added} farh entries import ho gayi`+(createdFarmers?` (${createdFarmers} naye farmer bane)`:''));
   });
 }
 // ── Farmer CRUD ──
