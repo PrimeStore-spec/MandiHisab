@@ -1462,6 +1462,8 @@ function packDbForCloud(){
     movements: db.movements || [],
     counters: db.counters || {lot:0,gatepass:0},
     settings: db.settings || {},
+    farhFarmers: db.farhFarmers || [],
+    farhEntries: db.farhEntries || [],
     _syncUpdatedAt: Date.now()
   };
 }
@@ -1479,7 +1481,10 @@ function applyRemoteToDb(val){
     liftings: Array.isArray(val.liftings) ? val.liftings : [],
     movements: Array.isArray(val.movements) ? val.movements : [],
     counters: val.counters && typeof val.counters === 'object' ? val.counters : {lot:0,gatepass:0},
-    settings: val.settings && typeof val.settings === 'object' ? val.settings : {}
+    settings: val.settings && typeof val.settings === 'object' ? val.settings : {},
+    // Mera Farh: cloud me ho to wahi lo; purane cloud me na ho to LOCAL farh data preserve karo (kabhi na ude)
+    farhFarmers: Array.isArray(val.farhFarmers) ? val.farhFarmers : (db.farhFarmers || []),
+    farhEntries: Array.isArray(val.farhEntries) ? val.farhEntries : (db.farhEntries || [])
   };
   ensureDbShape();
   try{ localStorage.setItem('mmp_v2', JSON.stringify(db)); }catch(e){}
