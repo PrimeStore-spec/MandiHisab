@@ -125,7 +125,7 @@ td{padding:7px 10px;white-space:nowrap;color:var(--text);}
 .prog{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;margin-top:4px;}
 .pf{height:100%;border-radius:2px;transition:width .5s;}
 /* ── MODAL ── */
-.ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:16px;}
+.ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.66);z-index:200;align-items:center;justify-content:center;padding:16px;}
 .ov.open{display:flex;}
 .modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:10px;width:min(960px,97vw);max-height:94vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:mup .22s cubic-bezier(.34,1.56,.64,1);}
 .modal-sm{width:min(480px,97vw);}
@@ -1771,10 +1771,12 @@ function goTab(id, btn){
 }
 
 // ── MODALS ──
-function openModal(id){ E(id).classList.add('open'); }
-function closeModal(id){ const el=E(id); if(el){ el.classList.remove('open'); el.style.zIndex=''; } }
+// Background scroll lock: jab koi bhi modal khula ho to body scroll roko (peeche ka repaint band → smooth)
+function syncBodyScrollLock(){ document.body.style.overflow=document.querySelector('.ov.open')?'hidden':''; }
+function openModal(id){ const el=E(id); if(el){ el.classList.add('open'); syncBodyScrollLock(); } }
+function closeModal(id){ const el=E(id); if(el){ el.classList.remove('open'); el.style.zIndex=''; syncBodyScrollLock(); } }
 // Open a modal stacked ON TOP of another already-open modal (nested quick-add)
-function openModalTop(id){ const el=E(id); if(!el) return; el.style.zIndex='300'; el.classList.add('open'); }
+function openModalTop(id){ const el=E(id); if(!el) return; el.style.zIndex='300'; el.classList.add('open'); syncBodyScrollLock(); }
 
 // ── INLINE QUICK-CREATE (party / buyer / godown / stack from inside any voucher) ──
 let quickAddReturn=null; // {type, selectId, after}
@@ -5708,34 +5710,32 @@ function renderFarhImportPreview(){
 function runFarhImport(){
   const rows=farhImportRows;
   if(!rows.length) return toast('Koi row nahi!','e');
-  confirmDel(`${rows.length} farh entries import karein? (sirf Mera Farh me add hongi)`,()=>{
-    // farmer name -> id (existing ya naya banao)
-    const nameToId={};
-    (db.farhFarmers||[]).forEach(f=>{ nameToId[(f.name||'').toLowerCase().trim()]=f.id; });
-    let added=0,createdFarmers=0;
-    rows.forEach(r=>{
-      const key=r.farmer.toLowerCase().trim();
-      let fid=nameToId[key];
-      if(!fid){
-        const nf={ id:uid(), name:r.farmer, phone:'', village:'', note:'', createdAt:new Date().toISOString() };
-        db.farhFarmers.push(nf); nameToId[key]=nf.id; fid=nf.id; createdFarmers++;
-      }
-      const gid=farhMatchGodown(r.godown);
-      const sid=farhMatchStack(r.stack,gid);
-      const wtBags=Math.round(r.bags*0.5*100)/100;
-      const amount=r.amount>0?r.amount:Math.round(r.rate*r.kanta*100)/100;
-      db.farhEntries.push({
-        id:uid(), date:r.date, farmerId:fid, bags:r.bags, grade:r.grade,
-        wtBags, wtKanta:r.kanta, billType:r.bill, rate:r.rate, amount,
-        godownId:gid, stackId:sid, note:r.note||'',
-        createdAt:new Date().toISOString()
-      });
-      added++;
+  // farmer name -> id (existing ya naya banao)
+  const nameToId={};
+  (db.farhFarmers||[]).forEach(f=>{ nameToId[(f.name||'').toLowerCase().trim()]=f.id; });
+  let added=0,createdFarmers=0;
+  rows.forEach(r=>{
+    const key=r.farmer.toLowerCase().trim();
+    let fid=nameToId[key];
+    if(!fid){
+      const nf={ id:uid(), name:r.farmer, phone:'', village:'', note:'', createdAt:new Date().toISOString() };
+      db.farhFarmers.push(nf); nameToId[key]=nf.id; fid=nf.id; createdFarmers++;
+    }
+    const gid=farhMatchGodown(r.godown);
+    const sid=farhMatchStack(r.stack,gid);
+    const wtBags=Math.round(r.bags*0.5*100)/100;
+    const amount=r.amount>0?r.amount:Math.round(r.rate*r.kanta*100)/100;
+    db.farhEntries.push({
+      id:uid(), date:r.date, farmerId:fid, bags:r.bags, grade:r.grade,
+      wtBags, wtKanta:r.kanta, billType:r.bill, rate:r.rate, amount,
+      godownId:gid, stackId:sid, note:r.note||'',
+      createdAt:new Date().toISOString()
     });
-    saveDb(); renderFarh();
-    closeModal('farh-import-modal');
-    toast(`✅ ${added} farh entries import ho gayi`+(createdFarmers?` (${createdFarmers} naye farmer bane)`:''));
+    added++;
   });
+  saveDb(); renderFarh();
+  closeModal('farh-import-modal');
+  toast(`✅ ${added} farh entries import ho gayi`+(createdFarmers?` (${createdFarmers} naye farmer bane)`:''));
 }
 // ── Farmer CRUD ──
 function prepNewFarmerModal(){
